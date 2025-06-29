@@ -31,17 +31,14 @@ type SubscriptionOption = {
 type PurchaseOption = TopUpOption | SubscriptionOption;
 
 const topUpOptions: TopUpOption[] = [
-  { type: 'top-up', credits: 100, price: 10, popular: false, bestValue: false },
-  { type: 'top-up', credits: 275, price: 25, popular: true, bestValue: false },
-  { type: 'top-up', credits: 600, price: 50, popular: false, bestValue: false },
-  { type: 'top-up', credits: 1250, price: 100, popular: false, bestValue: true },
+  { type: 'top-up', credits: 1000, price: 25, popular: false, bestValue: false },
+  { type: 'top-up', credits: 2105, price: 50, popular: true, bestValue: false },
+  { type: 'top-up', credits: 4444, price: 100, popular: false, bestValue: true },
 ];
 
 const subscriptionOptions: SubscriptionOption[] = [
-  { type: 'subscription', name: 'Monthly Plan', credits: 1000, price: 25, billing: '/ month', description: 'Get 1,000 credits auto-renewed each month, plus VIP community access.', popular: true, bestValue: true },
+  { type: 'subscription', name: 'Monthly Plan', credits: 1000, price: 20, billing: '/ month', description: 'Get 1,000 credits auto-renewed each month, plus VIP community access.', popular: true, bestValue: true },
 ];
-
-const purchaseOptions: PurchaseOption[] = [...topUpOptions, ...subscriptionOptions];
 
 const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onPurchaseClick: (option: PurchaseOption) => void }) => (
   <Card className="relative flex h-full flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
@@ -102,7 +99,7 @@ export default function DashboardPage() {
         <div>
           <h2 className="font-headline text-3xl font-bold text-center mb-8">Subscription</h2>
           <div className="flex justify-center">
-            <div className="w-full md:w-1/2 lg:w-1/4">
+            <div className="w-full md:w-1/2 lg:w-1/3">
               {subscriptionOptions.map((option) => (
                 <PurchaseCard key={`sub-${option.name}`} option={option} onPurchaseClick={handlePurchaseClick} />
               ))}
@@ -112,7 +109,7 @@ export default function DashboardPage() {
 
         <div>
           <h2 className="font-headline text-3xl font-bold text-center mb-8">One-Time Top Up</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {topUpOptions.map((option) => (
               <PurchaseCard key={`topup-${option.credits}`} option={option} onPurchaseClick={handlePurchaseClick} />
             ))}
