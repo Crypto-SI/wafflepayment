@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Star } from "lucide-react";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function DashboardPage() {
   const isAuthenticated = useAuthGuard();
@@ -30,7 +33,7 @@ export default function DashboardPage() {
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Welcome back, {user.name.split(' ')[0]}.</p>
       </header>
       
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto grid max-w-4xl gap-8">
         <Card className="shadow-xl">
           <CardHeader className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
             <Avatar className="h-24 w-24 border-4 border-primary">
@@ -67,6 +70,59 @@ export default function DashboardPage() {
                   Top Up Credits
                 </Link>
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle className="font-headline text-2xl">Profile Management</CardTitle>
+            <CardDescription>Update your account settings and manage your subscription.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <form className="space-y-4">
+              <h3 className="font-headline text-lg font-semibold">Personal Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" defaultValue={user.name} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" defaultValue={user.email} />
+                </div>
+              </div>
+              <Button>Save Changes</Button>
+            </form>
+            
+            <Separator />
+            
+            <form className="space-y-4">
+               <h3 className="font-headline text-lg font-semibold">Change Password</h3>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password">Current Password</Label>
+                    <Input id="current-password" type="password" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input id="new-password" type="password" />
+                  </div>
+                </div>
+              <Button>Update Password</Button>
+            </form>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-headline text-lg font-semibold">Subscription</h3>
+              <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4 mt-4">
+                <div>
+                  <p className="font-medium">Current Plan</p>
+                  <p className="text-muted-foreground">{user.isSubscriber ? 'CryptoWaffle Subscriber' : 'No active subscription'}</p>
+                </div>
+                <Button variant="outline">Manage Subscription</Button>
+              </div>
             </div>
           </CardContent>
         </Card>
