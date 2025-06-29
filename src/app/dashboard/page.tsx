@@ -19,6 +19,7 @@ type TopUpOption = {
 type SubscriptionOption = {
   type: 'subscription';
   name: string;
+  credits: number;
   price: number;
   billing: string;
   description: string;
@@ -28,13 +29,57 @@ type SubscriptionOption = {
 
 type PurchaseOption = TopUpOption | SubscriptionOption;
 
-const purchaseOptions: PurchaseOption[] = [
+const topUpOptions: TopUpOption[] = [
   { type: 'top-up', credits: 100, price: 10, popular: false, bestValue: false },
-  { type: 'top-up', credits: 550, price: 50, popular: true, bestValue: false },
-  { type: 'top-up', credits: 1200, price: 100, popular: false, bestValue: true },
-  { type: 'subscription', name: 'Subscription', price: 20, billing: '/ month', description: 'Free membership to Crypto Waffle VIP community', popular: false, bestValue: false },
+  { type: 'top-up', credits: 275, price: 25, popular: true, bestValue: false },
+  { type: 'top-up', credits: 600, price: 50, popular: false, bestValue: false },
+  { type: 'top-up', credits: 1250, price: 100, popular: false, bestValue: true },
 ];
 
+const subscriptionOptions: SubscriptionOption[] = [
+  { type: 'subscription', name: 'Monthly Plan', credits: 1000, price: 25, billing: '/ month', description: 'Get 1,000 credits auto-renewed each month, plus VIP community access.', popular: true, bestValue: true },
+];
+
+const purchaseOptions: PurchaseOption[] = [...topUpOptions, ...subscriptionOptions];
+
+const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onPurchaseClick: (option: PurchaseOption) => void }) => (
+  <Card className="relative flex h-full flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
+    {option.popular && (
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground z-10">
+        Popular
+      </div>
+    )}
+    {option.bestValue && (
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-sm font-semibold text-primary-foreground z-10">
+        Best Value
+      </div>
+    )}
+    <CardHeader className="text-center pt-8">
+      {option.type === 'top-up' ? (
+        <>
+          <CardTitle className="font-headline text-3xl">{option.credits.toLocaleString()} Credits</CardTitle>
+          <CardDescription>for just</CardDescription>
+        </>
+      ) : (
+        <>
+          <CardTitle className="font-headline text-3xl">{option.name}</CardTitle>
+          <CardDescription className="mt-2 text-base px-2">{option.credits.toLocaleString()} credits {option.billing}</CardDescription>
+        </>
+      )}
+    </CardHeader>
+    <CardContent className="flex flex-1 flex-col justify-between text-center">
+      <div className="mb-6">
+        <span className="font-headline text-5xl font-bold">${option.price}</span>
+        {option.type === 'subscription' && (
+          <p className="mt-2 text-sm text-muted-foreground px-2 min-h-[40px]">{option.description}</p>
+        )}
+      </div>
+      <Button onClick={() => onPurchaseClick(option)} className="w-full font-headline text-lg">
+        {option.type === 'top-up' ? 'Top Up' : 'Subscribe'}
+      </Button>
+    </CardContent>
+  </Card>
+);
 
 export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,54 +92,31 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
-      <header className="mb-8 text-center">
+      <header className="mb-12 text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight md:text-5xl">Pricing Plans</h1>
         <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Choose a package or subscription that suits your needs.</p>
       </header>
-
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-        {purchaseOptions.map((option) => (
-          <Card key={option.type === 'top-up' ? option.credits : option.name} className="relative flex h-full flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
-            {option.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground z-10">
-                Popular
-              </div>
-            )}
-            {option.bestValue && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-sm font-semibold text-primary-foreground z-10">
-                Best Value
-              </div>
-            )}
-            <CardHeader className="text-center pt-8">
-              {option.type === 'top-up' ? (
-                <>
-                  <CardTitle className="font-headline text-3xl">{option.credits.toLocaleString()} Credits</CardTitle>
-                  <CardDescription>for just</CardDescription>
-                </>
-              ) : (
-                <>
-                  <CardTitle className="font-headline text-3xl">{option.name}</CardTitle>
-                  <CardDescription className="mt-2 text-base px-2">{option.description}</CardDescription>
-                </>
-              )}
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col justify-between text-center">
-              <div className="mb-6">
-                {option.type === 'top-up' ? (
-                  <span className="font-headline text-5xl font-bold">${option.price}</span>
-                ) : (
-                  <span className="font-headline text-5xl font-bold">
-                    ${option.price}
-                    <span className="text-lg font-normal text-muted-foreground">{option.billing}</span>
-                  </span>
-                )}
-              </div>
-              <Button onClick={() => handlePurchaseClick(option)} className="w-full font-headline text-lg">
-                {option.type === 'top-up' ? 'Top Up' : 'Subscribe'}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+      
+      <div className="space-y-16">
+        <div>
+          <h2 className="font-headline text-3xl font-bold text-center mb-8">One-Time Top Up</h2>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {topUpOptions.map((option) => (
+              <PurchaseCard key={`topup-${option.credits}`} option={option} onPurchaseClick={handlePurchaseClick} />
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <h2 className="font-headline text-3xl font-bold text-center mb-8">Subscription</h2>
+          <div className="flex justify-center">
+            <div className="w-full md:w-1/2 lg:w-1/4">
+              {subscriptionOptions.map((option) => (
+                <PurchaseCard key={`sub-${option.name}`} option={option} onPurchaseClick={handlePurchaseClick} />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -105,7 +127,7 @@ export default function DashboardPage() {
               {selectedOption && (
                 selectedOption.type === 'top-up' 
                 ? `You are about to purchase ${selectedOption.credits.toLocaleString()} credits for $${selectedOption.price}.` 
-                : `You are about to subscribe to the ${selectedOption.name} plan for $${selectedOption.price}${selectedOption.billing}.`
+                : `You are about to subscribe to the ${selectedOption.name} plan. You'll receive ${selectedOption.credits.toLocaleString()} credits for $${selectedOption.price}${selectedOption.billing}.`
               )}
             </DialogDescription>
           </DialogHeader>
