@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { CreditCard } from "lucide-react";
 import { MetamaskIcon } from "@/components/icons";
 import Link from "next/link";
+import Image from "next/image";
 
 type TopUpOption = {
   type: 'top-up';
@@ -116,6 +117,38 @@ export default function DashboardPage() {
               <PurchaseCard key={`topup-${option.credits}`} option={option} onPurchaseClick={handlePurchaseClick} />
             ))}
           </div>
+        </div>
+        
+        <div>
+          <Card className="mt-8 border-dashed border-primary/50 bg-card/50">
+            <CardContent className="flex flex-col md:flex-row items-center justify-center gap-8 p-8 text-center md:text-left">
+              <Image
+                src="https://placehold.co/120x120.png"
+                data-ai-hint="token logo"
+                alt="Soonak Meme Token Logo"
+                width={120}
+                height={120}
+                className="rounded-full border-4 border-primary/20 object-cover"
+              />
+              <div className="max-w-2xl">
+                <h3 className="font-headline text-2xl font-bold">Buyback & Burn Initiative</h3>
+                <p className="mt-2 text-muted-foreground">
+                  11% of all purchases go directly towards the buyback and burn of the <span className="font-bold text-foreground">Soonak Meme token</span>, helping to support its ecosystem and community.
+                </p>
+                <div className="mt-4 flex flex-col items-center md:items-start gap-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Contract:</span>
+                    <code className="font-mono text-xs bg-muted p-1 rounded-md">PASTE_CONTRACT_ADDRESS_HERE</code>
+                  </div>
+                  <div>
+                    <Link href="#" className="text-primary underline hover:text-primary/80">
+                      Learn more about Soonak
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
