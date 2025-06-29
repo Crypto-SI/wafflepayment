@@ -19,15 +19,15 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-2" suppressHydrationWarning>
                 <Label htmlFor="email" className="font-headline">Email</Label>
                 <Input id="email" type="email" placeholder="m@example.com" required />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" suppressHydrationWarning>
                 <Label htmlFor="password" className="font-headline">Password</Label>
                 <Input id="password" type="password" required />
               </div>
-               <div className="space-y-2">
+               <div className="space-y-2" suppressHydrationWarning>
                 <Label htmlFor="confirm-password" className="font-headline">Confirm Password</Label>
                 <Input id="confirm-password" type="password" required />
               </div>

@@ -19,11 +19,11 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-2" suppressHydrationWarning>
                 <Label htmlFor="email" className="font-headline">Email</Label>
                 <Input id="email" type="email" placeholder="m@example.com" required />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" suppressHydrationWarning>
                 <div className="flex items-center">
                   <Label htmlFor="password" className="font-headline">Password</Label>
                   <Link href="#" className="ml-auto inline-block text-sm underline">
