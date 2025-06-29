@@ -5,14 +5,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, Star } from "lucide-react";
+import { CreditCard, SlidersHorizontal, Star } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 export default function DashboardPage() {
   const isAuthenticated = useAuthGuard();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const user = {
     name: 'Satoshi Nakamoto',
@@ -33,7 +36,7 @@ export default function DashboardPage() {
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Welcome back, {user.name.split(' ')[0]}.</p>
       </header>
       
-      <div className="mx-auto grid max-w-4xl gap-8">
+      <div className="mx-auto grid max-w-4xl items-start gap-8">
         <Card className="shadow-xl">
           <CardHeader className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
             <Avatar className="h-24 w-24 border-4 border-primary">
@@ -63,86 +66,94 @@ export default function DashboardPage() {
                   )}
                 </div>
             </div>
-            <div className="mt-8 flex justify-center">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
               <Button asChild size="lg">
                 <Link href="/top-up">
                   <CreditCard className="mr-2 h-5 w-5" />
                   Top Up Credits
                 </Link>
               </Button>
+              <Button variant="outline" size="lg" onClick={() => setIsProfileOpen(!isProfileOpen)}>
+                <SlidersHorizontal className="mr-2 h-5 w-5" />
+                Manage Profile
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">Profile Management</CardTitle>
-            <CardDescription>Update your account settings and manage your subscription.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <form className="space-y-4">
-              <h3 className="font-headline text-lg font-semibold">Personal Information</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input id="name" defaultValue={user.name} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user.email} />
-                </div>
-              </div>
-              <Button>Save Changes</Button>
-            </form>
-            
-            <Separator />
-
-            <form className="space-y-4">
-                <h3 className="font-headline text-lg font-semibold">Profile Picture</h3>
-                <div className="flex items-center gap-6">
-                    <Avatar className="h-20 w-20">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar person" />
-                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid w-full max-w-sm items-center gap-1.5">
-                        <Label htmlFor="picture">Update picture</Label>
-                        <Input id="picture" type="file" />
+        <Collapsible open={isProfileOpen} className="w-full">
+          <CollapsibleContent className="overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+            <Card className="shadow-xl">
+              <CardHeader>
+                <CardTitle className="font-headline text-2xl">Profile Management</CardTitle>
+                <CardDescription>Update your account settings and manage your subscription.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <form className="space-y-4">
+                  <h3 className="font-headline text-lg font-semibold">Personal Information</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input id="name" defaultValue={user.name} />
                     </div>
-                </div>
-                <Button>Update Picture</Button>
-            </form>
-            
-            <Separator />
-            
-            <form className="space-y-4">
-               <h3 className="font-headline text-lg font-semibold">Change Password</h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="current-password">Current Password</Label>
-                    <Input id="current-password" type="password" />
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" type="email" defaultValue={user.email} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
-                    <Input id="new-password" type="password" />
-                  </div>
-                </div>
-              <Button>Update Password</Button>
-            </form>
+                  <Button>Save Changes</Button>
+                </form>
+                
+                <Separator />
 
-            <Separator />
+                <form className="space-y-4">
+                    <h3 className="font-headline text-lg font-semibold">Profile Picture</h3>
+                    <div className="flex items-center gap-6">
+                        <Avatar className="h-20 w-20">
+                            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar person" />
+                            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid w-full max-w-sm items-center gap-1.5">
+                            <Label htmlFor="picture">Update picture</Label>
+                            <Input id="picture" type="file" />
+                        </div>
+                    </div>
+                    <Button>Update Picture</Button>
+                </form>
+                
+                <Separator />
+                
+                <form className="space-y-4">
+                   <h3 className="font-headline text-lg font-semibold">Change Password</h3>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <Input id="current-password" type="password" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input id="new-password" type="password" />
+                      </div>
+                    </div>
+                  <Button>Update Password</Button>
+                </form>
 
-            <div>
-              <h3 className="font-headline text-lg font-semibold">Subscription</h3>
-              <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4 mt-4">
+                <Separator />
+
                 <div>
-                  <p className="font-medium">Current Plan</p>
-                  <p className="text-muted-foreground">{user.isSubscriber ? 'CryptoWaffle Subscriber' : 'No active subscription'}</p>
+                  <h3 className="font-headline text-lg font-semibold">Subscription</h3>
+                  <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4 mt-4">
+                    <div>
+                      <p className="font-medium">Current Plan</p>
+                      <p className="text-muted-foreground">{user.isSubscriber ? 'CryptoWaffle Subscriber' : 'No active subscription'}</p>
+                    </div>
+                    <Button variant="outline">Manage Subscription</Button>
+                  </div>
                 </div>
-                <Button variant="outline">Manage Subscription</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
