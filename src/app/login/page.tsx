@@ -6,8 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import type { FormEvent } from 'react';
 
 export default function EmailLoginPage() {
+  const router = useRouter();
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    router.push('/dashboard');
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
@@ -22,7 +31,7 @@ export default function EmailLoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-headline">Email</Label>
                 <Input id="email" type="email" placeholder="m@example.com" required />
