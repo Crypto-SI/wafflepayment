@@ -18,9 +18,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ["pino-pretty", "lokijs", "encoding"],
-  },
+  serverExternalPackages: ["pino-pretty", "lokijs", "encoding"],
 };
 
 export default nextConfig;
