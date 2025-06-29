@@ -40,7 +40,7 @@ export default function ConfirmationPage() {
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="w-full">
-              <Link href="/dashboard">Back to Top-Up</Link>
+              <Link href="/top-up">Back to Top-Up</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link href="/history">View History</Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutGrid, History } from "lucide-react";
+import { LayoutGrid, History, User } from "lucide-react";
 import { WaffleIcon } from "./icons";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -20,6 +20,10 @@ export function Header() {
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
           <Link href="/dashboard" className="flex items-center gap-1 transition-colors hover:text-primary">
+            <User className="h-4 w-4" />
+            Dashboard
+          </Link>
+          <Link href="/top-up" className="flex items-center gap-1 transition-colors hover:text-primary">
             <LayoutGrid className="h-4 w-4" />
             Top-Up
           </Link>
