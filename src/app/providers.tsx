@@ -27,9 +27,9 @@ import { useMemo } from 'react';
 
 const config = getDefaultConfig({
   appName: 'Waffle Payments',
-  projectId: 'c1b65b214417a86f8a54d6d37670731c',
+  projectId: 'YOUR_PROJECT_ID',
   chains: [mainnet, polygon, optimism, arbitrum, base],
-  ssr: false, 
+  ssr: false,
 });
 
 const queryClient = new QueryClient();
