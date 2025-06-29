@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
@@ -14,8 +14,8 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 flex items-center justify-center">
               <WaffleIcon className="h-16 w-16 text-primary" />
             </div>
-            <CardTitle className="font-headline text-4xl">Waffle Payments</CardTitle>
-            <CardDescription className="pt-2">Welcome back! Please log in to top up.</CardDescription>
+            <CardTitle className="font-headline text-4xl">Create an Account</CardTitle>
+            <CardDescription className="pt-2">Join Waffle Payments to start topping up.</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4">
@@ -24,22 +24,21 @@ export default function LoginPage() {
                 <Input id="email" type="email" placeholder="m@example.com" required />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password" className="font-headline">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline">
-                    Forgot your password?
-                  </Link>
-                </div>
+                <Label htmlFor="password" className="font-headline">Password</Label>
                 <Input id="password" type="password" required />
               </div>
+               <div className="space-y-2">
+                <Label htmlFor="confirm-password" className="font-headline">Confirm Password</Label>
+                <Input id="confirm-password" type="password" required />
+              </div>
               <Button type="submit" className="w-full font-headline text-lg" asChild>
-                <Link href="/dashboard">Login</Link>
+                <Link href="/dashboard">Create Account</Link>
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="underline">
-                Sign up
+              Already have an account?{" "}
+              <Link href="/" className="underline">
+                Login
               </Link>
             </div>
           </CardContent>
