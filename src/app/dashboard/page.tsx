@@ -4,11 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Star } from "lucide-react";
 import { MetamaskIcon } from "@/components/icons";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 type TopUpOption = {
   type: 'top-up';
@@ -91,20 +93,60 @@ export default function DashboardPage() {
     setIsModalOpen(true);
   };
   
+  const user = {
+    name: 'Satoshi Nakamoto',
+    email: 'satoshi@waffle.com',
+    avatarUrl: 'https://placehold.co/128x128.png',
+    credits: 58008,
+    isSubscriber: true,
+  };
+
   if (!isAuthenticated) {
     return null;
   }
 
   return (
     <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
+      <Card className="mb-12 shadow-xl">
+        <CardHeader className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
+          <Avatar className="h-24 w-24 border-4 border-primary">
+            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar person" />
+            <AvatarFallback className="text-3xl">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-3xl font-bold font-headline">{user.name}</CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">{user.email}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="border-t pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="rounded-lg border bg-muted/50 p-4 text-center">
+                <p className="text-sm font-medium text-muted-foreground">Credits Remaining</p>
+                <p className="text-4xl font-bold tracking-tight">{user.credits.toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/50 p-4 text-center flex flex-col justify-center items-center">
+                <p className="text-sm font-medium text-muted-foreground">Subscription Status</p>
+                {user.isSubscriber ? (
+                  <Badge className="mt-2 px-4 py-2 text-base font-semibold" variant="secondary">
+                    <Star className="mr-2 h-5 w-5 fill-yellow-400 text-yellow-500" />
+                    CryptoWaffle Subscriber
+                  </Badge>
+                ) : (
+                  <p className="text-2xl font-bold tracking-tight text-muted-foreground">Inactive</p>
+                )}
+              </div>
+          </div>
+        </CardContent>
+      </Card>
+      
       <header className="mb-12 text-center">
-        <h1 className="font-headline text-4xl font-bold tracking-tight md:text-5xl">Pricing Plans</h1>
+        <h1 className="font-headline text-4xl font-bold tracking-tight md:text-5xl">Top Up Credits</h1>
         <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Choose a package or subscription that suits your needs.</p>
       </header>
       
       <div className="space-y-16">
         <div>
-          <h2 className="font-headline text-3xl font-bold text-center mb-8">Subscription</h2>
+          <h2 className="font-headline text-3xl font-bold text-center mb-8">Subscriptions</h2>
           <div className="flex justify-center">
             <div className="w-full md:w-1/2 lg:w-1/3">
               {subscriptionOptions.map((option) => (
