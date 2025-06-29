@@ -3,6 +3,7 @@ import './globals.css';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ClientProviders } from './client-providers';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export const metadata: Metadata = {
   title: 'Waffle Payments',
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -25,6 +26,7 @@ export default function RootLayout({
         <ClientProviders>
           {children}
           <Toaster />
+          <ThemeToggle />
         </ClientProviders>
       </body>
     </html>
