@@ -4,8 +4,13 @@ import Link from "next/link";
 import { LayoutGrid, History } from "lucide-react";
 import { WaffleIcon } from "./icons";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
+
 
 export function Header() {
+  const { connected: isSolanaConnected } = useWallet();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
@@ -24,7 +29,7 @@ export function Header() {
           </Link>
         </nav>
         <div className="flex items-center gap-4">
-          <ConnectButton />
+          { isSolanaConnected ? <WalletMultiButton /> : <ConnectButton /> }
         </div>
       </div>
     </header>

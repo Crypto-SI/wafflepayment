@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +8,10 @@ import { CreditCard } from "lucide-react";
 import { MetamaskIcon } from "@/components/icons";
 import Link from "next/link";
 import Image from "next/image";
+import { useAccount } from 'wagmi';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useRouter } from 'next/navigation';
+
 
 type TopUpOption = {
   type: 'top-up';
@@ -80,13 +84,29 @@ const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onP
 );
 
 export default function DashboardPage() {
+  const { isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
+  const { connected: isSolanaConnected, connecting: isSolanaConnecting } = useWallet();
+  const router = useRouter();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null);
+
+  useEffect(() => {
+    if (isEvmConnecting || isSolanaConnecting) return;
+
+    if (!isEvmConnected && !isSolanaConnected) {
+      router.push('/');
+    }
+  }, [isEvmConnected, isSolanaConnected, isEvmConnecting, isSolanaConnecting, router]);
 
   const handlePurchaseClick = (option: PurchaseOption) => {
     setSelectedOption(option);
     setIsModalOpen(true);
   };
+  
+  if (!isEvmConnected && !isSolanaConnected) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">

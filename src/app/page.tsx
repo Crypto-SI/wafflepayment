@@ -1,21 +1,48 @@
 "use client";
 
-import { WaffleIcon } from "@/components/icons";
+import { WaffleIcon, SolanaIcon, EvmIcon } from "@/components/icons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+// EVM
 import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+
+// Solana
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
-  const { isConnected } = useAccount();
+  const { isConnected: isEvmConnected } = useAccount();
+  const { connected: isSolanaConnected } = useWallet();
   const router = useRouter();
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { openConnectModal } = useConnectModal();
+  const { setVisible: setSolanaModalVisible } = useWalletModal();
+
   useEffect(() => {
-    if (isConnected) {
+    if (isEvmConnected || isSolanaConnected) {
       router.push('/dashboard');
     }
-  }, [isConnected, router]);
+  }, [isEvmConnected, isSolanaConnected, router]);
+
+  const handleEvmConnect = () => {
+    if (openConnectModal) {
+      openConnectModal();
+      setIsModalOpen(false);
+    }
+  };
+
+  const handleSolanaConnect = () => {
+    setSolanaModalVisible(true);
+    setIsModalOpen(false);
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -30,7 +57,35 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <div className="flex justify-center py-4">
-              <ConnectButton />
+               <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <Button onClick={() => setIsModalOpen(true)} size="lg" className="font-headline text-lg">Connect Wallet</Button>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl text-center">Choose Wallet Type</DialogTitle>
+                    <DialogDescription className="text-center">
+                      Select your preferred blockchain network.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
+                    <Button
+                      variant="outline"
+                      className="h-28 flex-col gap-2 text-lg hover:bg-secondary"
+                      onClick={handleEvmConnect}
+                    >
+                      <EvmIcon className="h-10 w-10 text-primary" />
+                      EVM Wallet
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-28 flex-col gap-2 text-lg hover:bg-secondary"
+                      onClick={handleSolanaConnect}
+                    >
+                      <SolanaIcon className="h-10 w-10 text-primary" />
+                      Solana Wallet
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <div className="mt-4 text-center text-sm">
               By connecting your wallet, you agree to our Terms of Service.
