@@ -96,6 +96,23 @@ export default function DashboardPage() {
             </form>
             
             <Separator />
+
+            <form className="space-y-4">
+                <h3 className="font-headline text-lg font-semibold">Profile Picture</h3>
+                <div className="flex items-center gap-6">
+                    <Avatar className="h-20 w-20">
+                        <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar person" />
+                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid w-full max-w-sm items-center gap-1.5">
+                        <Label htmlFor="picture">Update picture</Label>
+                        <Input id="picture" type="file" />
+                    </div>
+                </div>
+                <Button>Update Picture</Button>
+            </form>
+            
+            <Separator />
             
             <form className="space-y-4">
                <h3 className="font-headline text-lg font-semibold">Change Password</h3>
