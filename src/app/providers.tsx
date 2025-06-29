@@ -29,7 +29,7 @@ const config = getDefaultConfig({
   appName: 'Waffle Payments',
   projectId: 'c1b65b214417a86f8a54d6d37670731c',
   chains: [mainnet, polygon, optimism, arbitrum, base],
-  ssr: true, 
+  ssr: false, 
 });
 
 const queryClient = new QueryClient();
