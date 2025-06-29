@@ -99,15 +99,6 @@ export default function DashboardPage() {
       
       <div className="space-y-16">
         <div>
-          <h2 className="font-headline text-3xl font-bold text-center mb-8">One-Time Top Up</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {topUpOptions.map((option) => (
-              <PurchaseCard key={`topup-${option.credits}`} option={option} onPurchaseClick={handlePurchaseClick} />
-            ))}
-          </div>
-        </div>
-        
-        <div>
           <h2 className="font-headline text-3xl font-bold text-center mb-8">Subscription</h2>
           <div className="flex justify-center">
             <div className="w-full md:w-1/2 lg:w-1/4">
@@ -115,6 +106,15 @@ export default function DashboardPage() {
                 <PurchaseCard key={`sub-${option.name}`} option={option} onPurchaseClick={handlePurchaseClick} />
               ))}
             </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="font-headline text-3xl font-bold text-center mb-8">One-Time Top Up</h2>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {topUpOptions.map((option) => (
+              <PurchaseCard key={`topup-${option.credits}`} option={option} onPurchaseClick={handlePurchaseClick} />
+            ))}
           </div>
         </div>
       </div>
