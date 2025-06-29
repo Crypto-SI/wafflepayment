@@ -1,9 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import '@solana/wallet-adapter-react-ui/styles.css';
-import { Toaster } from "@/components/ui/toaster"
 import { ClientProviders } from './client-providers';
-import { ThemeToggle } from '@/components/theme-toggle';
 
 export const metadata: Metadata = {
   title: 'Waffle Payments',
@@ -25,8 +23,6 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <ClientProviders>
           {children}
-          <Toaster />
-          <ThemeToggle />
         </ClientProviders>
       </body>
     </html>
