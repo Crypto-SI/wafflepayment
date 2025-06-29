@@ -14,6 +14,7 @@ export default function EmailLoginPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    sessionStorage.setItem('isEmailLoggedIn', 'true');
     router.push('/dashboard');
   };
 

@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useAccount } from 'wagmi';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useRouter } from 'next/navigation';
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,19 +13,9 @@ const transactions = [
 ];
 
 export default function HistoryPage() {
-  const { isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
-  const { connected: isSolanaConnected, connecting: isSolanaConnecting } = useWallet();
-  const router = useRouter();
+  const isAuthenticated = useAuthGuard();
 
-  useEffect(() => {
-    if (isEvmConnecting || isSolanaConnecting) return;
-
-    if (!isEvmConnected && !isSolanaConnected) {
-      router.push('/');
-    }
-  }, [isEvmConnected, isSolanaConnected, isEvmConnecting, isSolanaConnecting, router]);
-
-  if (!isEvmConnected && !isSolanaConnected) {
+  if (!isAuthenticated) {
     return null;
   }
   
