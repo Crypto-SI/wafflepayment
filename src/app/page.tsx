@@ -87,7 +87,7 @@ export default function LoginPage() {
                 </DialogContent>
               </Dialog>
             </div>
-            <div className="mt-4 text-center text-sm">
+            <div suppressHydrationWarning className="mt-4 text-center text-sm">
               By connecting your wallet, you agree to our Terms of Service.
             </div>
           </CardContent>

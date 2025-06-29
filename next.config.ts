@@ -1,6 +1,20 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        // Apply these headers to all routes in your application.
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
+    ];
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
