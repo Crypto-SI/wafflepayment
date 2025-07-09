@@ -10,24 +10,62 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { AuthService } from "@/lib/supabase/auth-service";
 
 export default function DashboardPage() {
-  const isAuthenticated = useAuthGuard();
+  const { isAuthenticated, loading: authLoading } = useAuthGuard();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const user = {
-    name: 'Satoshi Nakamoto',
-    email: 'satoshi@waffle.com',
-    avatarUrl: 'https://placehold.co/128x128.png',
-    credits: 58008,
-    isSubscriber: true,
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      loadUserData();
+    }
+  }, [isAuthenticated, authLoading]);
+
+  const loadUserData = async () => {
+    try {
+      const result = await AuthService.getCurrentUser();
+      if (result.success) {
+        setUserData({
+          auth: result.user,
+          subscriber: result.subscriber
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    } finally {
+      setDataLoading(false);
+    }
   };
 
-  if (!isAuthenticated) {
+  if (authLoading || dataLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-lg text-muted-foreground">Loading your dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !userData) {
     return null;
   }
+
+  const user = {
+    name: userData.subscriber?.full_name || userData.subscriber?.name || userData.auth?.email || 'User',
+    email: userData.subscriber?.email || userData.auth?.email || '',
+    avatarUrl: userData.subscriber?.avatar_url || 'https://placehold.co/128x128.png',
+    credits: userData.subscriber?.credits || 0,
+    isSubscriber: userData.subscriber?.subscription_tier === 'premium' || false,
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
@@ -41,7 +79,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
             <Avatar className="h-24 w-24 border-4 border-primary">
               <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar person" />
-              <AvatarFallback className="text-3xl">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              <AvatarFallback className="text-3xl">{user.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
             </Avatar>
             <div>
               <CardTitle className="text-3xl font-bold font-headline">{user.name}</CardTitle>
@@ -111,7 +149,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-6">
                         <Avatar className="h-20 w-20">
                             <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar person" />
-                            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            <AvatarFallback>{user.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                         <div className="grid w-full max-w-sm items-center gap-1.5">
                             <Label htmlFor="picture">Update picture</Label>
