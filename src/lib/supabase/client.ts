@@ -1,9 +1,30 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Validate client-side environment variables
+if (!supabaseUrl) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+}
+if (!supabaseAnonKey) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+}
+
+// Create clients with fallback values to prevent crashes
+const defaultUrl = 'https://placeholder.supabase.co'
+const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.placeholder'
+
+// SSR-compatible client for client-side operations with proper cookie handling
+export const supabase = createBrowserClient(
+  supabaseUrl || defaultUrl, 
+  supabaseAnonKey || defaultKey
+)
+
+// Helper function to check if client-side Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return !!(supabaseUrl && supabaseAnonKey)
+}
 
 // Types for our database tables
 export interface Subscriber {
@@ -13,6 +34,8 @@ export interface Subscriber {
   full_name?: string
   name?: string
   avatar_url?: string
+  wallet_address?: string
+  auth_type?: string
   credits?: number
   subscription_tier?: string
   status?: string

@@ -1,50 +1,51 @@
 "use client";
 
-import { WaffleIcon, SolanaIcon, EvmIcon } from "@/components/icons";
+import { WaffleIcon, EvmIcon } from "@/components/icons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Mail } from "lucide-react";
-
-// EVM
-import { useAccount } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
-
-// Solana
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from "next/link";
+import dynamic from 'next/dynamic';
+
+// Dynamically import wallet components to prevent SSR issues
+const WalletAuthModal = dynamic(() => import('@/components/wallet-auth-modal'), {
+  ssr: false,
+  loading: () => <div>Loading wallet options...</div>
+});
 
 export default function LoginPage() {
-  const { isConnected: isEvmConnected } = useAccount();
-  const { connected: isSolanaConnected } = useWallet();
+  const { data: session, status } = useSession();
   const router = useRouter();
-
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-
-  const { openConnectModal } = useConnectModal();
-  const { setVisible: setSolanaModalVisible } = useWalletModal();
+  const [walletAuthMode, setWalletAuthMode] = useState<'signin' | 'signup'>('signin');
 
   useEffect(() => {
-    if (isEvmConnected || isSolanaConnected) {
+    // If user is authenticated via NextAuth (wallet), redirect to dashboard
+    if (session?.user) {
       router.push('/dashboard');
     }
-  }, [isEvmConnected, isSolanaConnected, router]);
+  }, [session, router]);
 
-  const handleEvmConnect = () => {
-    if (openConnectModal) {
-      openConnectModal();
-      setIsWalletModalOpen(false);
-    }
-  };
-
-  const handleSolanaConnect = () => {
-    setSolanaModalVisible(true);
-    setIsWalletModalOpen(false);
-  };
+  // Show loading while checking session
+  if (status === 'loading') {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md">
+          <Card className="shadow-2xl">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -59,8 +60,15 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              <Button onClick={() => setIsWalletModalOpen(true)} size="lg" className="w-full font-headline text-lg">
-                <EvmIcon className="mr-2 h-5 w-5" /> Continue with Wallet
+              <Button 
+                onClick={() => {
+                  setWalletAuthMode('signin');
+                  setIsWalletModalOpen(true);
+                }} 
+                size="lg" 
+                className="w-full font-headline text-lg"
+              >
+                <EvmIcon className="mr-2 h-5 w-5" /> Sign In with Wallet
               </Button>
               
               <div className="relative">
@@ -81,8 +89,18 @@ export default function LoginPage() {
             <div className="mt-6 text-center text-sm text-muted-foreground">
                 Don't have an account?{' '}
                 <Link href="/signup" className="font-semibold text-primary hover:text-primary/80">
-                  Sign up
+                  Sign up with Email
                 </Link>
+                {' or '}
+                <button 
+                  onClick={() => {
+                    setWalletAuthMode('signup');
+                    setIsWalletModalOpen(true);
+                  }}
+                  className="font-semibold text-primary hover:text-primary/80 underline"
+                >
+                  Sign up with Wallet
+                </button>
             </div>
           </CardContent>
         </Card>
@@ -91,28 +109,21 @@ export default function LoginPage() {
       <Dialog open={isWalletModalOpen} onOpenChange={setIsWalletModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-headline text-2xl text-center">Choose Wallet Type</DialogTitle>
+            <DialogTitle className="font-headline text-2xl text-center">
+              {walletAuthMode === 'signin' ? 'Sign In with Wallet' : 'Sign Up with Wallet'}
+            </DialogTitle>
             <DialogDescription className="text-center">
-              Select your preferred blockchain network.
+              {walletAuthMode === 'signin' 
+                ? 'Connect your wallet to sign in to your existing account.'
+                : 'Connect your wallet to create a new account with crypto payments.'
+              }
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
-            <Button
-              variant="outline"
-              className="h-28 flex-col gap-2 text-lg hover:bg-secondary"
-              onClick={handleEvmConnect}
-            >
-              <EvmIcon className="h-10 w-10 text-primary" />
-              EVM Wallet
-            </Button>
-            <Button
-              variant="outline"
-              className="h-28 flex-col gap-2 text-lg hover:bg-secondary"
-              onClick={handleSolanaConnect}
-            >
-              <SolanaIcon className="h-10 w-10 text-primary" />
-              Solana Wallet
-            </Button>
+          <div className="py-4">
+            <WalletAuthModal 
+              mode={walletAuthMode} 
+              onClose={() => setIsWalletModalOpen(false)} 
+            />
           </div>
         </DialogContent>
       </Dialog>

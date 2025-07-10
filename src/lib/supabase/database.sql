@@ -4,6 +4,14 @@
 -- Drop user_profiles view if it exists (we'll use subscribers instead)
 DROP VIEW IF EXISTS public.user_profiles CASCADE;
 
+-- Add wallet support to subscribers table
+ALTER TABLE public.subscribers ADD COLUMN IF NOT EXISTS wallet_address TEXT UNIQUE;
+ALTER TABLE public.subscribers ADD COLUMN IF NOT EXISTS auth_type TEXT DEFAULT 'email' CHECK (auth_type IN ('email', 'wallet'));
+
+-- Create index for wallet address lookups
+CREATE INDEX IF NOT EXISTS idx_subscribers_wallet_address ON public.subscribers(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_subscribers_auth_type ON public.subscribers(auth_type);
+
 -- The subscribers table should already exist
 -- If not, create it with this structure:
 /*
@@ -14,6 +22,8 @@ CREATE TABLE IF NOT EXISTS public.subscribers (
     full_name TEXT,
     name TEXT,
     avatar_url TEXT,
+    wallet_address TEXT UNIQUE,
+    auth_type TEXT DEFAULT 'email' CHECK (auth_type IN ('email', 'wallet')),
     credits INTEGER DEFAULT 0,
     subscription_tier TEXT,
     status TEXT DEFAULT 'active',
@@ -102,4 +112,63 @@ CREATE TRIGGER trigger_update_subscriber_credits
     AFTER INSERT ON public.credit_transactions
     FOR EACH ROW
     WHEN (NEW.transaction_type = 'purchase')
-    EXECUTE FUNCTION update_subscriber_credits(); 
+    EXECUTE FUNCTION update_subscriber_credits();
+
+-- =============================================
+-- AUTO-CREATE SUBSCRIBERS FOR NEW USERS
+-- =============================================
+
+-- Function to automatically create a subscriber when a new user is created
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+    -- Insert new subscriber record
+    INSERT INTO public.subscribers (
+        user_id,
+        email,
+        full_name,
+        auth_type,
+        credits,
+        status,
+        created_at,
+        updated_at
+    ) VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name'),
+        CASE 
+            WHEN NEW.raw_user_meta_data->>'wallet_address' IS NOT NULL THEN 'wallet'
+            ELSE 'email'
+        END,
+        100, -- Give new users 100 credits to start
+        'active',
+        NOW(),
+        NOW()
+    );
+    
+    -- If this is a wallet user, also set the wallet address
+    IF NEW.raw_user_meta_data->>'wallet_address' IS NOT NULL THEN
+        UPDATE public.subscribers 
+        SET wallet_address = NEW.raw_user_meta_data->>'wallet_address'
+        WHERE user_id = NEW.id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+-- Create trigger to automatically create subscriber when new user signs up
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_user();
+
+-- Grant necessary permissions to supabase_auth_admin
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO supabase_auth_admin;
+GRANT INSERT ON TABLE public.subscribers TO supabase_auth_admin;
+GRANT UPDATE ON TABLE public.subscribers TO supabase_auth_admin; 

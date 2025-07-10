@@ -1,7 +1,17 @@
-import { supabase } from './client'
+import { supabase, isSupabaseConfigured } from './client'
 import { DatabaseService } from './database-service'
+import { getSession } from 'next-auth/react'
 
 export class AuthService {
+  // Helper method to check if Supabase operations can be performed
+  private static checkSupabaseConfig() {
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase client is not properly configured. Some features may not work.')
+      return false
+    }
+    return true
+  }
+
   // Full signup flow: Create in auth.users + subscribers
   static async signUp(userData: {
     email: string
@@ -10,6 +20,10 @@ export class AuthService {
     metadata?: any
   }) {
     try {
+      if (!this.checkSupabaseConfig()) {
+        return { success: false, error: 'Service configuration error' }
+      }
+
       // Step 1: Create user in auth.users (Supabase handles password hashing)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
@@ -58,6 +72,10 @@ export class AuthService {
     password: string
   }) {
     try {
+      if (!this.checkSupabaseConfig()) {
+        return { success: false, error: 'Service configuration error' }
+      }
+
       // Step 1: Authenticate with auth.users
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: credentials.email,
@@ -121,36 +139,61 @@ export class AuthService {
     }
   }
 
-  // Sign out
-  static async signOut() {
+  // Get current user (supports both email and wallet auth)
+  static async getCurrentUser() {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      return { success: true }
+      // Use the API endpoint to get user profile (works for both client and server)
+      const response = await fetch('/api/user/profile', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for session
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          return { success: false, error: 'Not authenticated' };
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+
     } catch (error) {
-      console.error('Signout error:', error)
-      return { success: false, error }
+      console.error('Error getting current user:', error);
+      return { success: false, error };
     }
   }
 
-  // Get current user (both auth + subscriber data)
-  static async getCurrentUser() {
+  // Check if user is authenticated (email or wallet)
+  static async isAuthenticated() {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser()
-      
-      if (error) throw error
-      if (!user) return { success: false, error: 'No user logged in' }
-
-      // Get subscriber data
-      const subscriberResult = await DatabaseService.getSubscriberProfile(user.id)
-      
-      return {
-        success: true,
-        user,
-        subscriber: subscriberResult.success ? subscriberResult.data : null
-      }
+      const result = await this.getCurrentUser()
+      return result.success && result.user
     } catch (error) {
-      console.error('Get current user error:', error)
+      console.error('Error checking authentication:', error)
+      return false
+    }
+  }
+
+  // Sign out (handles both email and wallet auth)
+  static async signOut() {
+    try {
+      // Sign out from NextAuth (wallet users)
+      const { signOut: nextAuthSignOut } = await import('next-auth/react')
+      await nextAuthSignOut({ redirect: false })
+      
+      // Sign out from Supabase (email users) - only if configured
+      if (this.checkSupabaseConfig()) {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+      }
+      
+      return { success: true }
+    } catch (error) {
+      console.error('Error signing out:', error)
       return { success: false, error }
     }
   }

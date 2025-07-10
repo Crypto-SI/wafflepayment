@@ -1,14 +1,11 @@
-import { Header } from "@/components/header";
-
 export default function TopUpLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <Header />
-      <main className="flex-1 bg-background">{children}</main>
+    <div className="flex-1">
+      {children}
     </div>
   );
 }

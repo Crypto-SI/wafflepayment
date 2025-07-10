@@ -2,33 +2,36 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { AuthService } from '@/lib/supabase/auth-service';
+import { useSession } from 'next-auth/react';
+import { AuthService } from '@/lib/supabase/auth-service-client';
 
 export function useAuthGuard() {
   const router = useRouter();
-  const { isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
-  const { connected: isSolanaConnected, connecting: isSolanaConnecting } = useWallet();
+  const { data: session, status: sessionStatus } = useSession();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const isConnecting = isEvmConnecting || isSolanaConnecting;
-      if (isConnecting) {
+      const isSessionLoading = sessionStatus === 'loading';
+      
+      if (isSessionLoading) {
         return;
       }
 
       try {
-        // Check for Supabase auth (email users)
+        // Check NextAuth session (wallet users)
+        if (session?.user) {
+          setIsAuthenticated(true);
+          setLoading(false);
+          return;
+        }
+
+        // Check Supabase auth (email users)
         const userResult = await AuthService.getCurrentUser();
         const isEmailAuthenticated = userResult.success && userResult.user;
 
-        // Check for wallet connections
-        const walletConnected = isEvmConnected || isSolanaConnected;
-
-        if (isEmailAuthenticated || walletConnected) {
+        if (isEmailAuthenticated) {
           setIsAuthenticated(true);
         } else {
           // No valid authentication found
@@ -36,7 +39,6 @@ export function useAuthGuard() {
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        // If auth check fails, redirect to login
         router.push('/');
       } finally {
         setLoading(false);
@@ -44,7 +46,7 @@ export function useAuthGuard() {
     };
 
     checkAuth();
-  }, [isEvmConnected, isSolanaConnected, isEvmConnecting, isSolanaConnecting, router]);
+  }, [session, sessionStatus, router]);
 
   return { isAuthenticated, loading };
 }

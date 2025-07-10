@@ -1,0 +1,64 @@
+{
+  "mcpServers": {
+    "stripe-mcp": {
+      "command": "npm",
+      "args": ["run", "mcp:stripe"],
+      "cwd": "/Users/cryptosi/Desktop/Vibe Coding/wafflepayment/wafflepayment",
+      "env": {
+        "STRIPE_SECRET_KEY": "sk_test_your_key_here",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_your_key_here",
+        "STRIPE_WEBHOOK_SECRET": "whsec_your_secret_here"
+      }
+    },
+    "figma-developer-mcp": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--stdio"],
+      "env": {
+        "FIGMA_API_KEY": "figd_IBQy1Na1TS105X0LYGmk3Yd7yQZH_jmkcQ_hEJ0C"
+      }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_531250e602729a98e9df4044c17ca15aadb85873"
+      ]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgres://supabase_admin:3c60830d1b85d8fcab7c77b057972d3d@173.249.36.76:5433/postgres"
+      ]
+    },
+    "taskmaster-ai": {
+      "command": "npx",
+      "args": ["-y", "--package=task-master-ai", "task-master-ai"],
+      "env": {
+        "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
+        "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
+        "OPENAI_API_KEY": "YOUR_OPENAI_KEY_HERE",
+        "GOOGLE_API_KEY": "YOUR_GOOGLE_KEY_HERE",
+        "MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+        "OPENROUTER_API_KEY": "YOUR_OPENROUTER_KEY_HERE",
+        "XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+        "AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE"
+      }
+    },
+    "ssh": {
+      "command": "node",
+      "args": ["%APPDATA%/npm/node_modules/mcp-ssh/dist/server.js"],
+      "env": {
+        "SSH_PORT": "8889",
+        "SSH_LOG_LEVEL": "info"
+      }
+    }
+  }
+} 

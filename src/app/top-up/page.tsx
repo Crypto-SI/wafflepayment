@@ -1,19 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CreditCard, Star } from "lucide-react";
+import { CreditCard, Star, Loader2 } from "lucide-react";
 import { MetamaskIcon } from "@/components/icons";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useToast } from "@/hooks/use-toast";
+import { AuthService } from "@/lib/supabase/auth-service-client";
+import { CryptoPayment } from "@/components/crypto-payment";
+import { CREDIT_PACKAGES, type PaymentPackage } from "@/lib/crypto-tokens";
 
 type TopUpOption = {
   type: 'top-up';
+  name: string;
   credits: number;
   price: number;
+  description: string;
   popular: boolean;
   bestValue: boolean;
 };
@@ -32,13 +38,13 @@ type SubscriptionOption = {
 type PurchaseOption = TopUpOption | SubscriptionOption;
 
 const topUpOptions: TopUpOption[] = [
-  { type: 'top-up', credits: 1000, price: 25, popular: false, bestValue: false },
-  { type: 'top-up', credits: 2105, price: 50, popular: true, bestValue: false },
-  { type: 'top-up', credits: 4444, price: 100, popular: false, bestValue: true },
+  { type: 'top-up', name: 'Single Stack', credits: 1000, price: 25, description: 'Perfect for getting started', popular: false, bestValue: false },
+  { type: 'top-up', name: 'Belgian Special', credits: 2105, price: 50, description: 'Most popular choice', popular: true, bestValue: false },
+  { type: 'top-up', name: 'Waffle Tower', credits: 4444, price: 100, description: 'Maximum value stack', popular: false, bestValue: true },
 ];
 
 const subscriptionOptions: SubscriptionOption[] = [
-  { type: 'subscription', name: 'Monthly Plan', credits: 1000, price: 20, billing: '/ month', description: 'Get 1,000 credits auto-renewed each month, plus VIP community access.', popular: true, bestValue: true },
+  { type: 'subscription', name: 'Waffle Club', credits: 1000, price: 20, billing: '/ month', description: 'Join the monthly waffle feast with auto-renewed credits and VIP community access.', popular: true, bestValue: true },
 ];
 
 const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onPurchaseClick: (option: PurchaseOption) => void }) => (
@@ -51,8 +57,10 @@ const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onP
     <CardHeader className="text-center pt-8">
       {option.type === 'top-up' ? (
         <>
-          <CardTitle className="font-headline text-3xl">{option.credits.toLocaleString()} Credits</CardTitle>
-          <CardDescription>for just</CardDescription>
+          <CardTitle className="font-headline text-3xl">{option.name}</CardTitle>
+          <CardDescription className="mt-2 text-base px-2">
+            {option.credits.toLocaleString()} Credits
+          </CardDescription>
         </>
       ) : (
         <>
@@ -63,9 +71,11 @@ const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onP
     </CardHeader>
     <CardContent className="flex flex-1 flex-col justify-between text-center">
       <div className="mb-6">
+        <p className="mt-2 text-sm text-muted-foreground px-2 mb-4">{option.description}</p>
+        <div className="text-sm text-gray-500 mb-2">for just</div>
         <span className="font-headline text-5xl font-bold">${option.price}</span>
         {option.type === 'subscription' && (
-          <p className="mt-2 text-sm text-muted-foreground px-2 min-h-[40px]">{option.description}</p>
+          <span className="text-lg text-muted-foreground">/{option.billing}</span>
         )}
       </div>
       <Button onClick={() => onPurchaseClick(option)} className="w-full font-headline text-lg">
@@ -76,14 +86,133 @@ const PurchaseCard = ({ option, onPurchaseClick }: { option: PurchaseOption, onP
 );
 
 export default function TopUpPage() {
-  const isAuthenticated = useAuthGuard();
+  const { isAuthenticated } = useAuthGuard();
+  const { toast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      AuthService.getCurrentUser().then(result => {
+        if (result.success && result.user) {
+          setCurrentUser(result.user);
+        }
+      });
+    }
+  }, [isAuthenticated]);
 
   const handlePurchaseClick = (option: PurchaseOption) => {
     setSelectedOption(option);
     setIsModalOpen(true);
+  };
+
+  const handleCryptoPayment = () => {
+    setIsModalOpen(false);
+    setIsCryptoModalOpen(true);
+  };
+
+  const handleCryptoPaymentSuccess = async (transactionHash: string, tokenSymbol: string, amount: string) => {
+    if (!selectedOption || !currentUser) return;
+
+    try {
+      // Verify the payment on the backend
+      const response = await fetch('/api/crypto/verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionHash,
+          userAddress: currentUser.wallet_address,
+          tokenSymbol,
+          expectedAmount: amount,
+          chainId: 1, // This should be dynamic based on the selected token
+          packageCredits: selectedOption.credits,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Payment Successful!",
+          description: `${selectedOption.credits.toLocaleString()} credits have been added to your account.`,
+        });
+        setIsCryptoModalOpen(false);
+        setSelectedOption(null);
+      } else {
+        throw new Error(data.error || 'Payment verification failed');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      toast({
+        title: "Payment Verification Failed",
+        description: error instanceof Error ? error.message : "Failed to verify payment. Please contact support.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStripePayment = async () => {
+    if (!selectedOption || !currentUser) return;
+
+    setIsLoading(true);
+    try {
+      // Find the package index
+      let packageIndex: number;
+      if (selectedOption.type === 'top-up') {
+        packageIndex = topUpOptions.findIndex(opt => 
+          opt.credits === selectedOption.credits && opt.price === selectedOption.price
+        );
+      } else {
+        packageIndex = subscriptionOptions.findIndex(opt => 
+          opt.name === selectedOption.name && opt.price === selectedOption.price
+        );
+      }
+
+      if (packageIndex === -1) {
+        throw new Error('Package not found');
+      }
+
+      // Create checkout session
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: selectedOption.type,
+          packageIndex,
+          userId: currentUser.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   if (!isAuthenticated) {
@@ -158,28 +287,49 @@ export default function TopUpPage() {
             <DialogDescription>
               {selectedOption && (
                 selectedOption.type === 'top-up' 
-                ? `You are about to purchase ${selectedOption.credits.toLocaleString()} credits for $${selectedOption.price}.` 
+                ? `You are about to purchase the "${selectedOption.name}" package (${selectedOption.credits.toLocaleString()} credits) for $${selectedOption.price}.` 
                 : `You are about to subscribe to the ${selectedOption.name} plan. You'll receive ${selectedOption.credits.toLocaleString()} credits for $${selectedOption.price}${selectedOption.billing}.`
               )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm font-medium">Please select your payment method:</p>
-            <Button variant="outline" className="w-full justify-start h-14 text-lg hover:bg-secondary" asChild>
-              <Link href="/confirmation">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start h-14 text-lg hover:bg-secondary" 
+              onClick={handleStripePayment}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-4 h-6 w-6 animate-spin" />
+              ) : (
                 <CreditCard className="mr-4 h-6 w-6 text-primary" />
-                Pay with Card (Stripe)
-              </Link>
+              )}
+              {isLoading ? 'Creating Checkout...' : 'Pay with Card (Stripe)'}
             </Button>
-            <Button variant="outline" className="w-full justify-start h-14 text-lg hover:bg-secondary" asChild>
-                <Link href="/confirmation">
-                    <MetamaskIcon className="mr-4 h-6 w-6 text-primary" />
-                    Pay with Crypto (MetaMask)
-                </Link>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start h-14 text-lg hover:bg-secondary" 
+              onClick={handleCryptoPayment}
+            >
+              <MetamaskIcon className="mr-4 h-6 w-6 text-primary" />
+              Pay with Crypto (USDT/USDC)
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      <CryptoPayment
+        isOpen={isCryptoModalOpen}
+        onClose={() => setIsCryptoModalOpen(false)}
+        selectedPackage={selectedOption ? {
+          credits: selectedOption.credits,
+          price: selectedOption.price,
+          name: selectedOption.name,
+          description: selectedOption.description,
+        } : null}
+        onPaymentSuccess={handleCryptoPaymentSuccess}
+      />
     </div>
   );
 }

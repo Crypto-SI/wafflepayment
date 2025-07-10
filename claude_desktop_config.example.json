@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "waffle-webhook": {
+      "command": "npm",
+      "args": ["run", "mcp:webhook"],
+      "cwd": "/Users/cryptosi/Desktop/Vibe Coding/wafflepayment/wafflepayment",
+      "env": {
+        "STRIPE_SECRET_KEY": "sk_test_your_actual_stripe_secret_key_here",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_your_actual_stripe_publishable_key_here",
+        "STRIPE_WEBHOOK_SECRET": "whsec_your_webhook_secret_will_be_auto_generated"
+      }
+    }
+  }
+} 

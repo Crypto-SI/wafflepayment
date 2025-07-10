@@ -1,29 +1,35 @@
-import type {Metadata} from 'next';
-import './globals.css';
-import '@solana/wallet-adapter-react-ui/styles.css';
-import { ClientProviders } from './client-providers';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import "@rainbow-me/rainbowkit/styles.css";
+import { AppProviders } from "./providers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { Header } from "@/components/header";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Waffle Payments',
-  description: 'Top up your credits with ease.',
+  title: "Waffle Payments",
+  description: "Your seamless gateway to crypto payments",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const session = await getServerSession(authOptions);
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
-        <ClientProviders>
-          {children}
-        </ClientProviders>
+    <html lang="en">
+      <body className={inter.className}>
+        <AppProviders session={session}>
+          <div className="flex min-h-screen w-full flex-col">
+            <Header />
+            <main className="flex-1 bg-background">{children}</main>
+          </div>
+        </AppProviders>
       </body>
     </html>
   );
