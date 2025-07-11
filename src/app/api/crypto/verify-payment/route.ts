@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { PAYMENT_WALLET_ADDRESS, SUPPORTED_TOKENS } from '@/lib/crypto-tokens';
 import { createPublicClient, http, parseUnits, type Log } from 'viem';
 import { mainnet, polygon, arbitrum, base, optimism } from 'viem/chains';
@@ -12,6 +12,9 @@ const chainConfigs: Record<number, { chain: any; rpc: string }> = {
   [base.id]: { chain: base, rpc: process.env.BASE_RPC_URL || 'https://base.llamarpc.com' },
   [optimism.id]: { chain: optimism, rpc: process.env.OPTIMISM_RPC_URL || 'https://optimism.llamarpc.com' },
 };
+
+// Award credits immediately when transaction is created (0 confirmations)
+const REQUIRED_CONFIRMATIONS = 0;
 
 interface PaymentVerificationRequest {
   transactionHash: string;
@@ -64,6 +67,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Transaction failed' }, { status: 400 });
     }
 
+    // Get current block number to calculate confirmations
+    const currentBlockNumber = await publicClient.getBlockNumber();
+    const confirmations = Number(currentBlockNumber - receipt.blockNumber);
+
+    console.log(`Transaction ${transactionHash} has ${confirmations} confirmations (awarding credits immediately)`);
+
     // Get transaction details
     const transaction = await publicClient.getTransaction({
       hash: transactionHash as `0x${string}`,
@@ -106,116 +115,87 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Transaction amount is less than expected' }, { status: 400 });
     }
 
-    // Get subscriber info for the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get subscriber record
-    const { data: subscriber } = await supabase
+    // Verify that the wallet address matches a user in our system
+    // Look for user by wallet address OR by email pattern for wallet users
+    const { data: currentUser, error: userError } = await supabaseAdmin
       .from('subscribers')
-      .select('id')
-      .eq('user_id', user.id)
+      .select('id, email, wallet_address, user_id, auth_type')
+      .or(`wallet_address.eq.${userAddress.toLowerCase()},email.eq.${userAddress.toLowerCase()}@wallet.local`)
       .single();
 
-    if (!subscriber) {
-      return NextResponse.json({ error: 'Subscriber not found' }, { status: 404 });
+    if (userError || !currentUser) {
+      return NextResponse.json({ 
+        error: 'Wallet address not found. Please ensure you are logged in with the correct wallet address.' 
+      }, { status: 404 });
     }
 
-    // Check if this transaction has already been processed
-    const { data: existingTransaction } = await supabase
-      .from('crypto_transactions')
-      .select('id')
-      .eq('transaction_hash', transactionHash)
-      .single();
-
-    if (existingTransaction) {
-      return NextResponse.json({ error: 'Transaction already processed' }, { status: 400 });
-    }
-
-    // Verify that the wallet address matches the authenticated user
-    const { data: walletUser, error: userError } = await supabase
-      .from('subscribers')
-      .select('id, email, wallet_address, user_id')
-      .eq('wallet_address', userAddress.toLowerCase())
-      .single();
-
-    if (userError || !walletUser) {
-      return NextResponse.json({ error: 'Wallet address not found' }, { status: 404 });
-    }
-
-    // Verify that the wallet belongs to the authenticated user
-    if (walletUser.user_id !== user.id) {
-      return NextResponse.json({ error: 'Wallet address does not belong to authenticated user' }, { status: 403 });
-    }
-
-    // Start transaction to add credits and record payment
-    const { data: creditTransaction, error: creditError } = await supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: user.id,
-        credits: packageCredits,
-        transaction_type: 'purchase',
-        payment_method: 'crypto',
-        amount_usd: parseFloat(expectedAmount),
-        transaction_hash: transactionHash,
-        package_info: {
-          token_symbol: tokenSymbol,
-          token_address: token.address,
-          chain_id: chainId,
-          chain_name: token.chainName,
-          from_address: fromAddress,
-          to_address: toAddress,
-          amount_wei: amount.toString(),
-          block_number: receipt.blockNumber.toString(),
-        }
-      })
-      .select()
-      .single();
-
-    if (creditError) {
-      console.error('Error creating credit transaction:', creditError);
-      return NextResponse.json({ error: 'Failed to record credit transaction' }, { status: 500 });
-    }
-
-    // Record the crypto transaction
-    const { error: cryptoTxError } = await supabase
-      .from('crypto_transactions')
-      .insert({
-        transaction_hash: transactionHash,
-        user_id: user.id,
-        subscriber_id: subscriber.id,
-        token_symbol: tokenSymbol,
-        token_address: token.address,
-        chain_id: chainId,
-        amount: expectedAmount,
-        amount_wei: amount.toString(),
-        from_address: fromAddress,
-        to_address: toAddress,
-        block_number: receipt.blockNumber.toString(),
-        gas_used: receipt.gasUsed.toString(),
-        status: 'confirmed',
-        credits_awarded: packageCredits,
-        processed_at: new Date().toISOString(),
-      });
-
-    if (cryptoTxError) {
-      console.error('Error recording crypto transaction:', cryptoTxError);
-      // Note: Credits have already been added, so we don't want to fail here
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Payment verified and credits added successfully',
-      transaction: {
-        hash: transactionHash,
-        credits: packageCredits,
-        amount: expectedAmount,
-        token: tokenSymbol,
-        chain: token.chainName,
-      }
+    // Use a database transaction with advisory lock to prevent race conditions
+    const { data: result, error: transactionError } = await supabaseAdmin.rpc('process_crypto_payment', {
+      p_transaction_hash: transactionHash,
+      p_user_id: currentUser.user_id,
+      p_subscriber_id: currentUser.id,
+      p_token_symbol: tokenSymbol,
+      p_token_address: token.address,
+      p_chain_id: chainId,
+      p_amount: expectedAmount,
+      p_amount_wei: amount.toString(),
+      p_from_address: fromAddress,
+      p_to_address: toAddress,
+      p_block_number: receipt.blockNumber.toString(),
+      p_gas_used: receipt.gasUsed.toString(),
+      p_confirmations: confirmations,
+      p_package_credits: packageCredits,
+      p_chain_name: token.chainName
     });
+
+    if (transactionError) {
+      console.error('Error processing crypto payment:', transactionError);
+      return NextResponse.json({ error: 'Failed to process payment' }, { status: 500 });
+    }
+
+    const { already_processed, credits_awarded } = result || { already_processed: false, credits_awarded: 0 };
+
+    if (already_processed) {
+      console.log(`⚠️ Transaction ${transactionHash} already processed`);
+      return NextResponse.json({
+        success: true,
+        message: 'Payment already processed',
+        transaction: {
+          hash: transactionHash,
+          credits: credits_awarded,
+          amount: expectedAmount,
+          token: tokenSymbol,
+          chain: token.chainName,
+          confirmations: confirmations,
+          status: 'confirmed'
+        }
+      });
+    } else {
+      console.log(`✅ Credits awarded immediately: ${packageCredits} credits to user ${currentUser.user_id} for transaction ${transactionHash}`);
+      
+      // Debug: Check if subscriber record exists and credits were updated
+      const { data: subscriberCheck } = await supabaseAdmin
+        .from('subscribers')
+        .select('user_id, email, credits, updated_at')
+        .eq('user_id', currentUser.user_id)
+        .single();
+      
+      console.log(`📊 Subscriber check after credit award:`, subscriberCheck);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Payment verified and credits awarded immediately!',
+        transaction: {
+          hash: transactionHash,
+          credits: packageCredits,
+          amount: expectedAmount,
+          token: tokenSymbol,
+          chain: token.chainName,
+          confirmations: confirmations,
+          status: 'confirmed'
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Payment verification error:', error);
@@ -236,7 +216,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Transaction hash required' }, { status: 400 });
     }
 
-    const { data: transaction, error } = await supabase
+    const { data: transaction, error } = await supabaseAdmin
       .from('crypto_transactions')
       .select('*')
       .eq('transaction_hash', transactionHash)
@@ -247,18 +227,20 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
+      success: true,
       transaction: {
         hash: transaction.transaction_hash,
         status: transaction.status,
-        credits: transaction.credits_awarded,
+        confirmations: transaction.confirmations || 0,
+        credits: transaction.credits_awarded || 0,
         amount: transaction.amount,
         token: transaction.token_symbol,
-        processedAt: transaction.processed_at,
+        requiredConfirmations: REQUIRED_CONFIRMATIONS
       }
     });
 
   } catch (error) {
-    console.error('Payment status check error:', error);
+    console.error('Error checking payment status:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

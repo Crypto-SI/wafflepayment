@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+// Use admin client for webhook operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 import { headers } from 'next/headers';
 
 export async function POST(request: NextRequest) {
@@ -54,8 +66,8 @@ async function handleCheckoutSessionCompleted(session: any) {
     // Add credits to user account
     const creditsToAdd = parseInt(credits);
     
-    // Create credit transaction record
-    const { error: transactionError } = await supabase
+    // Create credit transaction record - this will automatically update subscriber credits via trigger
+    const { error: transactionError } = await supabaseAdmin
       .from('credit_transactions')
       .insert({
         user_id: userId,
@@ -94,8 +106,8 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   if (userId && credits) {
     const creditsToAdd = parseInt(credits);
     
-    // Create credit transaction record for subscription payment
-    const { error: transactionError } = await supabase
+    // Create credit transaction record for subscription payment - this will automatically update subscriber credits via trigger
+    const { error: transactionError } = await supabaseAdmin
       .from('credit_transactions')
       .insert({
         user_id: userId,

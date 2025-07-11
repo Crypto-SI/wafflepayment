@@ -14,7 +14,7 @@ import { join } from 'path';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-06-30.basil',
   typescript: true,
 });
 
@@ -578,7 +578,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   subscriptions.data.map(sub => 
                     `• ${sub.id} - ${sub.status}\n` +
                     `  Customer: ${sub.customer}\n` +
-                    `  Current Period: ${new Date(sub.current_period_start * 1000).toLocaleDateString()} - ${new Date(sub.current_period_end * 1000).toLocaleDateString()}\n` +
+                    `  Current Period: ${new Date((sub as any).current_period_start * 1000).toLocaleDateString()} - ${new Date((sub as any).current_period_end * 1000).toLocaleDateString()}\n` +
                     `  Amount: ${sub.items.data[0]?.price ? formatCurrency(sub.items.data[0].price.unit_amount || 0) : 'N/A'}\n`
                   ).join('\n'),
           }],
@@ -603,7 +603,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `✅ Subscription ${at_period_end ? 'scheduled for cancellation' : 'cancelled immediately'}!\n\n` +
                   `ID: ${subscription.id}\n` +
                   `Status: ${subscription.status}\n` +
-                  `${at_period_end ? `Will cancel at: ${new Date(subscription.current_period_end * 1000).toLocaleDateString()}` : 'Cancelled immediately'}`,
+                  `${at_period_end ? `Will cancel at: ${new Date((subscription as any).current_period_end * 1000).toLocaleDateString()}` : 'Cancelled immediately'}`,
           }],
         };
       }

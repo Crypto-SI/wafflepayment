@@ -115,8 +115,8 @@ export default function TopUpPage() {
     setIsCryptoModalOpen(true);
   };
 
-  const handleCryptoPaymentSuccess = async (transactionHash: string, tokenSymbol: string, amount: string) => {
-    if (!selectedOption || !currentUser) return;
+  const handleCryptoPaymentSuccess = async (transactionHash: string, tokenSymbol: string, amount: string, userAddress: string, chainId: number) => {
+    if (!selectedOption) return;
 
     try {
       // Verify the payment on the backend
@@ -127,10 +127,10 @@ export default function TopUpPage() {
         },
         body: JSON.stringify({
           transactionHash,
-          userAddress: currentUser.wallet_address,
+          userAddress,
           tokenSymbol,
           expectedAmount: amount,
-          chainId: 1, // This should be dynamic based on the selected token
+          chainId,
           packageCredits: selectedOption.credits,
         }),
       });

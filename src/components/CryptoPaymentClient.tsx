@@ -26,7 +26,7 @@ interface CryptoPaymentClientProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPackage: PaymentPackage | null;
-  onPaymentSuccess: (transactionHash: string, tokenSymbol: string, amount: string) => void;
+  onPaymentSuccess: (transactionHash: string, tokenSymbol: string, amount: string, userAddress: string, chainId: number) => void;
 }
 
 export default function CryptoPaymentClient({ isOpen, onClose, selectedPackage, onPaymentSuccess }: CryptoPaymentClientProps) {
@@ -92,8 +92,8 @@ export default function CryptoPaymentClient({ isOpen, onClose, selectedPackage, 
     if (isConfirmed && writeData) {
       setPaymentStep('success');
       setTransactionHash(writeData);
-      if (selectedToken && selectedPackage) {
-        onPaymentSuccess(writeData, selectedToken.symbol, selectedPackage.price.toString());
+      if (selectedToken && selectedPackage && userAddress) {
+        onPaymentSuccess(writeData, selectedToken.symbol, selectedPackage.price.toString(), userAddress, selectedToken.chainId);
       }
       toast({
         title: "Payment Successful!",
