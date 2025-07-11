@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ["pino-pretty", "lokijs", "encoding"],
+  // Enable standalone output for Docker
+  output: 'standalone',
 };
 
 export default nextConfig;
