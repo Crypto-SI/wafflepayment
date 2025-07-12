@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase, isSupabaseConfigured } from './client'
+import { supabaseAdmin } from './server'
 import { getSession } from 'next-auth/react'
 
 export class AuthService {
@@ -101,6 +102,44 @@ export class AuthService {
     }
   }
 
+  // Create subscriber record directly (bypass trigger)
+  private static async createSubscriberRecord(userData: {
+    user_id: string
+    email: string
+    full_name?: string
+    metadata?: any
+  }) {
+    try {
+      const { data, error } = await supabase
+        .from('subscribers')
+        .insert({
+          user_id: userData.user_id,
+          email: userData.email,
+          full_name: userData.full_name,
+          name: userData.full_name,
+          metadata: userData.metadata,
+          credits: 100, // Starting credits
+          status: 'active',
+          is_email_verified: false,
+          auth_type: 'email',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating subscriber record:', error)
+        return { success: false, error }
+      }
+
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error creating subscriber record:', error)
+      return { success: false, error }
+    }
+  }
+
   // Full signup flow via API
   static async signUp(userData: {
     email: string
@@ -125,37 +164,61 @@ export class AuthService {
         }
       })
 
-      if (authError) throw authError
-      if (!authData.user) throw new Error('No user data returned')
+      if (authError) {
+        console.error('Auth signup error:', authError)
+        throw authError
+      }
+      
+      if (!authData.user) {
+        throw new Error('No user data returned')
+      }
 
-      // Step 2: Create user in subscribers table via API
-      const response = await fetch('/api/user/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          user_id: authData.user.id,
-          email: userData.email,
-          full_name: userData.fullName,
-          name: userData.fullName,
-          metadata: userData.metadata
-        }),
-      });
+      // Step 2: Create subscriber record directly (more reliable than trigger)
+      console.log('Creating subscriber record for user:', authData.user.id)
+      
+      const subscriberResult = await this.createSubscriberRecord({
+        user_id: authData.user.id,
+        email: userData.email,
+        full_name: userData.fullName,
+        metadata: userData.metadata
+      })
 
-      let subscriberResult = { success: true, data: null };
-      if (response.ok) {
-        subscriberResult = await response.json();
-      } else {
-        console.error('Failed to create subscriber via API');
+      if (!subscriberResult.success) {
+        console.error('Failed to create subscriber record:', subscriberResult.error)
+        
+        // Try using the API endpoint as fallback
+        try {
+          const response = await fetch('/api/user/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              user_id: authData.user.id,
+              email: userData.email,
+              full_name: userData.fullName,
+              name: userData.fullName,
+              metadata: userData.metadata
+            }),
+          });
+
+          if (response.ok) {
+            const apiResult = await response.json();
+            subscriberResult.success = apiResult.success;
+            subscriberResult.data = apiResult.data;
+          }
+        } catch (apiError) {
+          console.error('API fallback also failed:', apiError)
+        }
       }
 
       return {
         success: true,
         user: authData.user,
         subscriber: subscriberResult.data,
-        needsEmailConfirmation: !authData.user.email_confirmed_at
+        needsEmailConfirmation: !authData.user.email_confirmed_at,
+        subscriberCreated: subscriberResult.success
       }
     } catch (error) {
       console.error('Signup error:', error)
