@@ -2,7 +2,6 @@
 
 import { supabase, isSupabaseConfigured } from './client'
 import { supabaseAdmin } from './server'
-import { getSession } from 'next-auth/react'
 
 export class AuthService {
   // Helper method to check if Supabase operations can be performed
@@ -53,19 +52,13 @@ export class AuthService {
     }
   }
 
-  // Sign out (handles both email and wallet auth)
+  // Sign out (handles only Supabase Auth)
   static async signOut() {
     try {
-      // Sign out from NextAuth (wallet users)
-      const { signOut: nextAuthSignOut } = await import('next-auth/react')
-      await nextAuthSignOut({ redirect: false })
-      
-      // Sign out from Supabase (email users) - only if configured
       if (this.checkSupabaseConfig()) {
         const { error } = await supabase.auth.signOut()
         if (error) throw error
       }
-      
       return { success: true }
     } catch (error) {
       console.error('Error signing out:', error)
@@ -160,7 +153,8 @@ export class AuthService {
           data: {
             full_name: userData.fullName,
             ...userData.metadata
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/confirm`
         }
       })
 
@@ -267,7 +261,9 @@ export class AuthService {
         return { success: false, error: 'Service configuration error' }
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/confirm`
+      })
       if (error) throw error
 
       return { success: true }

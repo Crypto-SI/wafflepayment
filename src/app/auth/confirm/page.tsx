@@ -23,17 +23,42 @@ export default function ConfirmPage() {
           return;
         }
 
-        const token = searchParams.get('token');
+        // Get token_hash and type from URL parameters (new format)
+        const token_hash = searchParams.get('token_hash');
         const type = searchParams.get('type');
+        
+        // Fallback to old token parameter for backward compatibility
+        const token = searchParams.get('token');
 
-        if (!token || !type) {
+        if (!token_hash && !token) {
           setStatus('error');
-          setMessage('Invalid confirmation link. Please try again.');
+          setMessage('Invalid confirmation link. Missing token.');
+          return;
+        }
+
+        if (!type) {
+          setStatus('error');
+          setMessage('Invalid confirmation link. Missing type parameter.');
+          return;
+        }
+
+        console.log('Processing email confirmation:', { 
+          token_hash: token_hash ? 'present' : 'missing', 
+          token: token ? 'present' : 'missing',
+          type 
+        });
+
+        // Use token_hash if available, otherwise fall back to token
+        const finalToken = token_hash || token;
+        
+        if (!finalToken) {
+          setStatus('error');
+          setMessage('Invalid confirmation link. No valid token found.');
           return;
         }
 
         const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: token,
+          token_hash: finalToken,
           type: type as any,
         });
 

@@ -159,10 +159,9 @@ export async function PUT(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from('subscribers')
       .update({
-        ...(name && { name, full_name: name }),
+        ...(name && { username: name, full_name: name }),
         ...(email && { email }),
-        ...(avatarUrl && { avatar_url: avatarUrl }),
-        updated_at: new Date().toISOString()
+        ...(avatarUrl && { avatar_url: avatarUrl })
       })
       .eq('user_id', userId)
       .select()

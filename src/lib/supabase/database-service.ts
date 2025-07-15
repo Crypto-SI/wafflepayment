@@ -8,9 +8,10 @@ export class DatabaseService {
     user_id: string
     email?: string
     full_name?: string
-    name?: string
+    username?: string
     avatar_url?: string
-    metadata?: any
+    wallet_address?: string
+    joined_via?: string
   }) {
     try {
       const { data, error } = await supabase
@@ -19,13 +20,13 @@ export class DatabaseService {
           user_id: userData.user_id,
           email: userData.email,
           full_name: userData.full_name,
-          name: userData.name,
+          username: userData.username,
           avatar_url: userData.avatar_url,
-          metadata: userData.metadata,
+          wallet_address: userData.wallet_address,
+          joined_via: userData.joined_via || 'site',
           credits: 0, // Initialize with 0 credits
-          status: 'active',
-          is_email_verified: false,
-          updated_at: new Date().toISOString()
+          is_active: true,
+          joined_at: new Date().toISOString()
         }, { 
           onConflict: 'user_id',
           ignoreDuplicates: false 
@@ -35,9 +36,6 @@ export class DatabaseService {
 
       if (error) throw error
       
-      // Initialize user credits (separate table)
-      await this.initializeUserCredits(userData.user_id)
-      
       return { success: true, data }
     } catch (error) {
       console.error('Error registering user:', error)
@@ -45,19 +43,11 @@ export class DatabaseService {
     }
   }
 
-  // Initialize user credits (0 balance)
+  // Initialize user credits (0 balance) - credits are stored in subscribers table
   static async initializeUserCredits(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from('user_credits')
-        .upsert({
-          user_id: userId,
-          balance: 0,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' })
-
-      if (error) throw error
-      return { success: true, data }
+      // Credits are already initialized in the subscribers table, no separate table needed
+      return { success: true, data: null }
     } catch (error) {
       console.error('Error initializing user credits:', error)
       return { success: false, error }
@@ -69,9 +59,9 @@ export class DatabaseService {
     userId: string
     credits: number
     paymentMethod: string
-    amountUsd: number
+    amountUsd?: number
     transactionHash?: string
-    packageInfo?: any
+    description?: string
   }) {
     try {
       const { data, error } = await supabase
@@ -79,19 +69,17 @@ export class DatabaseService {
         .insert({
           user_id: transactionData.userId,
           credits: transactionData.credits,
-          transaction_type: 'purchase',
-          payment_method: transactionData.paymentMethod,
-          amount_usd: transactionData.amountUsd,
-          transaction_hash: transactionData.transactionHash,
-          package_info: transactionData.packageInfo
+          type: 'purchase',
+          source: transactionData.paymentMethod,
+          transaction_id: transactionData.transactionHash,
+          description: transactionData.description || `Credit purchase via ${transactionData.paymentMethod}`
         })
         .select()
         .single()
 
       if (error) throw error
       
-      // Update credits in subscribers table
-      await this.updateSubscriberCredits(transactionData.userId, transactionData.credits)
+      // Credits are automatically updated via database trigger
       
       return { success: true, data }
     } catch (error) {
@@ -100,34 +88,12 @@ export class DatabaseService {
     }
   }
 
-  // Update subscriber credits
+  // Update subscriber credits (credits are automatically updated via database trigger)
   static async updateSubscriberCredits(userId: string, creditChange: number) {
     try {
-      // Get current credits
-      const { data: subscriber, error: getError } = await supabase
-        .from('subscribers')
-        .select('credits')
-        .eq('user_id', userId)
-        .single()
-
-      if (getError) throw getError
-
-      const currentCredits = subscriber?.credits || 0
-      const newCredits = currentCredits + creditChange
-
-      // Update credits
-      const { data, error } = await supabase
-        .from('subscribers')
-        .update({ 
-          credits: newCredits,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .select()
-        .single()
-
-      if (error) throw error
-      return { success: true, data }
+      // Credits are automatically updated via database trigger when credit_transactions are inserted
+      // This method is kept for backward compatibility but does nothing
+      return { success: true, data: null }
     } catch (error) {
       console.error('Error updating subscriber credits:', error)
       return { success: false, error }
@@ -225,7 +191,6 @@ export class DatabaseService {
         .from('subscribers')
         .select('*')
         .eq('wallet_address', walletAddress.toLowerCase())
-        .eq('auth_type', 'wallet')
         .single()
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
@@ -247,7 +212,6 @@ export class DatabaseService {
         .from('subscribers')
         .select('*')
         .eq('email', email)
-        .eq('auth_type', 'wallet')
         .single()
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
@@ -414,7 +378,7 @@ export class DatabaseService {
         console.log('Auth user created successfully:', authData.user.id);
 
         // Wait a moment for the trigger to execute, then fetch the subscriber record
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Get the subscriber record that should have been created by the trigger
         const { data: subscriberData, error: subscriberError } = await supabaseAdmin
@@ -425,7 +389,27 @@ export class DatabaseService {
 
         if (subscriberError) {
           console.error('Subscriber not created by trigger:', subscriberError);
-          throw new Error('Subscriber record was not created automatically');
+          // Try to create manually as fallback
+          const { data: manualSubscriber, error: manualError } = await supabaseAdmin
+            .from('subscribers')
+            .insert({
+              user_id: authData.user.id,
+              email: email,
+              full_name: userData.name || `User ${userData.wallet_address.slice(0, 6)}...${userData.wallet_address.slice(-4)}`,
+              username: userData.name || `User ${userData.wallet_address.slice(0, 6)}...${userData.wallet_address.slice(-4)}`,
+              wallet_address: userData.wallet_address.toLowerCase(),
+              joined_via: 'wallet',
+              credits: 0,
+              is_active: true
+            })
+            .select()
+            .single();
+          
+          if (manualError) {
+            throw new Error('Failed to create subscriber record: ' + manualError.message);
+          }
+          
+          return { success: true, data: manualSubscriber, isExisting: false };
         }
 
         console.log('Successfully created new user via trigger:', subscriberData);

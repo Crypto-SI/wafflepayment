@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { AuthService } from "@/lib/supabase/auth-service-client";
+import { supabase } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const { isAuthenticated, loading: authLoading } = useAuthGuard();
@@ -24,6 +25,10 @@ export default function DashboardPage() {
     name: '',
     email: ''
   });
+  const [pictureFile, setPictureFile] = useState<File | null>(null);
+  const [pictureUploading, setPictureUploading] = useState(false);
+  const [pictureError, setPictureError] = useState<string | null>(null);
+  const [pictureSuccess, setPictureSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -75,6 +80,96 @@ export default function DashboardPage() {
       alert('Failed to update profile');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  // Profile picture upload handler
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setPictureFile(e.target.files[0]);
+      setPictureError(null);
+      setPictureSuccess(null);
+    }
+  };
+
+  const handlePictureUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPictureUploading(true);
+    setPictureError(null);
+    setPictureSuccess(null);
+    try {
+      if (!pictureFile) {
+        setPictureError("Please select a file to upload.");
+        setPictureUploading(false);
+        return;
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+      if (!allowedTypes.includes(pictureFile.type)) {
+        setPictureError("Only PNG, JPEG, JPG, or WEBP images are allowed.");
+        setPictureUploading(false);
+        return;
+      }
+
+      // Validate file size (10MB limit)
+      if (pictureFile.size > 10485760) {
+        setPictureError("File size must be less than 10MB.");
+        setPictureUploading(false);
+        return;
+      }
+
+      // Get user id
+      const userId = userData?.subscriber?.user_id || userData?.auth?.id;
+      if (!userId) {
+        setPictureError("User not found.");
+        setPictureUploading(false);
+        return;
+      }
+
+      // Create a unique filename
+      const ext = pictureFile.name.split('.').pop();
+      const filePath = `${userId}/avatar.${ext}`;
+
+      // Upload to Supabase Storage with explicit content type
+      const { error: uploadError } = await supabase.storage
+        .from('user-images')
+        .upload(filePath, pictureFile, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: pictureFile.type, // Explicitly set content type
+        });
+
+      if (uploadError) {
+        setPictureError("Upload failed: " + uploadError.message);
+        setPictureUploading(false);
+        return;
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('user-images')
+        .getPublicUrl(filePath);
+      const publicUrl = publicUrlData?.publicUrl;
+      if (!publicUrl) {
+        setPictureError("Failed to get public URL for uploaded image.");
+        setPictureUploading(false);
+        return;
+      }
+
+      // Update avatar_url in DB
+      const result = await AuthService.updateProfile({ avatarUrl: publicUrl });
+      if (result.success) {
+        setPictureSuccess("Profile picture updated!");
+        await loadUserData();
+      } else {
+        setPictureError("Failed to update profile: " + (result.error || 'Unknown error'));
+      }
+    } catch (err: any) {
+      setPictureError("Unexpected error: " + (err.message || err.toString()));
+    } finally {
+      setPictureUploading(false);
+      setPictureFile(null);
     }
   };
 
@@ -212,7 +307,7 @@ export default function DashboardPage() {
                 
                 <Separator />
 
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handlePictureUpload}>
                     <h3 className="font-headline text-lg font-semibold">Profile Picture</h3>
                     <div className="flex items-center gap-6">
                         <Avatar className="h-20 w-20">
@@ -221,10 +316,14 @@ export default function DashboardPage() {
                         </Avatar>
                         <div className="grid w-full max-w-sm items-center gap-1.5">
                             <Label htmlFor="picture">Update picture</Label>
-                            <Input id="picture" type="file" />
+                            <Input id="picture" type="file" accept="image/*" onChange={handlePictureChange} disabled={pictureUploading} />
                         </div>
                     </div>
-                    <Button>Update Picture</Button>
+                    <Button type="submit" disabled={pictureUploading || !pictureFile}>
+                      {pictureUploading ? 'Uploading...' : 'Update Picture'}
+                    </Button>
+                    {pictureError && <div className="text-red-500 text-sm">{pictureError}</div>}
+                    {pictureSuccess && <div className="text-green-600 text-sm">{pictureSuccess}</div>}
                 </form>
                 
                 <Separator />
