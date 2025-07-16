@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { WaffleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-export default function ConfirmPage() {
+function ConfirmPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -144,3 +144,32 @@ export default function ConfirmPage() {
     </main>
   );
 } 
+
+export default function ConfirmPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md">
+          <Card className="shadow-2xl">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex items-center justify-center">
+                <WaffleIcon className="h-16 w-16 text-primary" />
+              </div>
+              <CardTitle className="font-headline text-4xl">
+                Email Confirmation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <div className="space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p>Loading...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    }>
+      <ConfirmPageContent />
+    </Suspense>
+  );
+}

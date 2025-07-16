@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
@@ -22,7 +22,7 @@ interface SessionData {
   payment_status: string;
 }
 
-export default function ConfirmationPage() {
+function ConfirmationPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get('session_id');
   
@@ -201,5 +201,22 @@ export default function ConfirmationPage() {
         userEmail={currentUser?.email}
       />
     </div>
+  );
+}
+
+export default function ConfirmationPage() {
+  return (
+    <Suspense fallback={
+      <div className="container flex items-center justify-center py-12">
+        <Card className="w-full max-w-lg text-center shadow-xl">
+          <CardContent className="p-8">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <p className="mt-4 text-muted-foreground">Loading payment confirmation...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ConfirmationPageContent />
+    </Suspense>
   );
 }
