@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
-export default function EmailLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,14 +35,10 @@ export default function EmailLoginPage() {
 
       if (result.success) {
         // User is now authenticated and has subscriber data
-        // (Auto-created if they came from another app)
         console.log('Auth user:', result.user);
         console.log('Subscriber data:', result.subscriber);
         
         setMessage('Login successful! Redirecting to dashboard...');
-        
-        // Clear any existing session storage (from old mock auth)
-        sessionStorage.removeItem('isEmailLoggedIn');
         
         setTimeout(() => {
           router.push('/dashboard');
@@ -70,7 +66,7 @@ export default function EmailLoginPage() {
             <div className="mx-auto mb-4 flex items-center justify-center">
               <Mail className="h-16 w-16 text-primary" />
             </div>
-            <CardTitle className="font-headline text-4xl">Login with Email</CardTitle>
+            <CardTitle className="font-headline text-4xl">Login</CardTitle>
             <CardDescription className="pt-2">
               Enter your credentials to access your account.
             </CardDescription>
@@ -128,7 +124,7 @@ export default function EmailLoginPage() {
               </p>
               <p className="mt-2">
                 <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
-                  &larr; Back to all login options
+                  &larr; Back to home
                 </Link>
               </p>
             </div>

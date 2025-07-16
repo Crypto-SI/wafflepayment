@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import { DatabaseService } from '@/lib/supabase/database-service';
 
 export async function POST(request: NextRequest) {

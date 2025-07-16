@@ -13,7 +13,7 @@ export class AuthService {
     return true
   }
 
-  // Get current user (supports both email and wallet auth)
+  // Get current user
   static async getCurrentUser() {
     try {
       // Use the API endpoint to get user profile (works for both client and server)
@@ -41,7 +41,7 @@ export class AuthService {
     }
   }
 
-  // Check if user is authenticated (email or wallet)
+  // Check if user is authenticated
   static async isAuthenticated() {
     try {
       const result = await this.getCurrentUser()

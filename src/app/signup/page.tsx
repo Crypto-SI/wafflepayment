@@ -169,7 +169,7 @@ export default function SignupPage() {
               </p>
                <p className="mt-2">
                 <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
-                  &larr; Back to all login options
+                  &larr; Back to home
                 </Link>
               </p>
             </div>

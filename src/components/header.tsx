@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export function Header() {
   const router = useRouter();
@@ -70,6 +71,11 @@ export function Header() {
           </nav>
         )}
         <div className="flex items-center gap-4">
+          {/* Wallet Connection - Always show when user is authenticated */}
+          {user && (
+            <ConnectButton />
+          )}
+          {/* User Authentication */}
           {user ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">

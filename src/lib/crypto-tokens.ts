@@ -1,5 +1,13 @@
-import { mainnet, polygon, arbitrum, base, optimism } from 'wagmi/chains';
-import { Address } from 'viem';
+// Chain IDs for reference (no longer using wagmi)
+const CHAIN_IDS = {
+  mainnet: 1,
+  polygon: 137,
+  arbitrum: 42161,
+  base: 8453,
+  optimism: 10,
+};
+
+export type Address = `0x${string}`;
 
 export interface TokenConfig {
   symbol: string;
@@ -30,7 +38,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'Tether USD',
     decimals: 6,
     address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    chainId: mainnet.id,
+    chainId: CHAIN_IDS.mainnet,
     chainName: 'Ethereum',
     icon: '💰',
   },
@@ -39,7 +47,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'USD Coin',
     decimals: 6,
     address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    chainId: mainnet.id,
+    chainId: CHAIN_IDS.mainnet,
     chainName: 'Ethereum',
     icon: '💵',
   },
@@ -49,7 +57,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'Tether USD',
     decimals: 6,
     address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-    chainId: polygon.id,
+    chainId: CHAIN_IDS.polygon,
     chainName: 'Polygon',
     icon: '💰',
   },
@@ -58,7 +66,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'USD Coin',
     decimals: 6,
     address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-    chainId: polygon.id,
+    chainId: CHAIN_IDS.polygon,
     chainName: 'Polygon',
     icon: '💵',
   },
@@ -68,7 +76,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'Tether USD',
     decimals: 6,
     address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
-    chainId: arbitrum.id,
+    chainId: CHAIN_IDS.arbitrum,
     chainName: 'Arbitrum',
     icon: '💰',
   },
@@ -77,7 +85,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'USD Coin',
     decimals: 6,
     address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-    chainId: arbitrum.id,
+    chainId: CHAIN_IDS.arbitrum,
     chainName: 'Arbitrum',
     icon: '💵',
   },
@@ -87,7 +95,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'Tether USD',
     decimals: 6,
     address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
-    chainId: base.id,
+    chainId: CHAIN_IDS.base,
     chainName: 'Base',
     icon: '💰',
   },
@@ -96,7 +104,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'USD Coin',
     decimals: 6,
     address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-    chainId: base.id,
+    chainId: CHAIN_IDS.base,
     chainName: 'Base',
     icon: '💵',
   },
@@ -106,7 +114,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'Tether USD',
     decimals: 6,
     address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
-    chainId: optimism.id,
+    chainId: CHAIN_IDS.optimism,
     chainName: 'Optimism',
     icon: '💰',
   },
@@ -115,7 +123,7 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
     name: 'USD Coin',
     decimals: 6,
     address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
-    chainId: optimism.id,
+    chainId: CHAIN_IDS.optimism,
     chainName: 'Optimism',
     icon: '💵',
   },

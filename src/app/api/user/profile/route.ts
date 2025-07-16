@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import { DatabaseService } from '@/lib/supabase/database-service';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
@@ -9,47 +7,38 @@ export async function GET(request: NextRequest) {
     let userId: string | null = null;
     let userEmail: string | null = null;
     
-    // Check NextAuth session first (wallet users)
-    const session = await getServerSession(authOptions);
-    
-    if (session?.user?.id) {
-      userId = session.user.id;
-      userEmail = session.user.email || null;
-    } else {
-      // Check Supabase auth session (email users) using cookies
-      try {
-        // Create a Supabase server client that can read cookies
-                 const { createServerClient } = await import('@supabase/ssr');
-         const { cookies } = await import('next/headers');
-         
-         const cookieStore = await cookies();
-        const supabaseServer = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          {
-            cookies: {
-              getAll() {
-                return cookieStore.getAll().map(cookie => ({
-                  name: cookie.name,
-                  value: cookie.value
-                }));
-              },
-              setAll(cookiesToSet) {
-                // In API routes, we can't set cookies on the response here
-                // But we can read them for authentication
-              },
+    // Check Supabase auth session using cookies
+    try {
+      const { createServerClient } = await import('@supabase/ssr');
+      const { cookies } = await import('next/headers');
+      
+      const cookieStore = await cookies();
+      const supabaseServer = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll().map(cookie => ({
+                name: cookie.name,
+                value: cookie.value
+              }));
             },
-          }
-        );
-        
-        const { data: { user }, error } = await supabaseServer.auth.getUser();
-        if (!error && user) {
-          userId = user.id;
-          userEmail = user.email || null;
+            setAll(cookiesToSet) {
+              // In API routes, we can't set cookies on the response here
+              // But we can read them for authentication
+            },
+          },
         }
-      } catch (error) {
-        console.error('Error checking Supabase session:', error);
+      );
+      
+      const { data: { user }, error } = await supabaseServer.auth.getUser();
+      if (!error && user) {
+        userId = user.id;
+        userEmail = user.email || null;
       }
+    } catch (error) {
+      console.error('Error checking Supabase session:', error);
     }
     
     if (!userId) {
@@ -106,44 +95,37 @@ export async function PUT(request: NextRequest) {
   try {
     let userId: string | null = null;
     
-    // Check NextAuth session first (wallet users)
-    const session = await getServerSession(authOptions);
-    
-    if (session?.user?.id) {
-      userId = session.user.id;
-    } else {
-      // Check Supabase auth session (email users) using cookies
-      try {
-        const { createServerClient } = await import('@supabase/ssr');
-        const { cookies } = await import('next/headers');
-        
-        const cookieStore = await cookies();
-        const supabaseServer = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          {
-            cookies: {
-              getAll() {
-                return cookieStore.getAll().map(cookie => ({
-                  name: cookie.name,
-                  value: cookie.value
-                }));
-              },
-              setAll(cookiesToSet) {
-                // In API routes, we can't set cookies on the response here
-                // But we can read them for authentication
-              },
+    // Check Supabase auth session using cookies
+    try {
+      const { createServerClient } = await import('@supabase/ssr');
+      const { cookies } = await import('next/headers');
+      
+      const cookieStore = await cookies();
+      const supabaseServer = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll().map(cookie => ({
+                name: cookie.name,
+                value: cookie.value
+              }));
             },
-          }
-        );
-        
-        const { data: { user }, error } = await supabaseServer.auth.getUser();
-        if (!error && user) {
-          userId = user.id;
+            setAll(cookiesToSet) {
+              // In API routes, we can't set cookies on the response here
+              // But we can read them for authentication
+            },
+          },
         }
-      } catch (error) {
-        console.error('Error checking Supabase session:', error);
+      );
+      
+      const { data: { user }, error } = await supabaseServer.auth.getUser();
+      if (!error && user) {
+        userId = user.id;
       }
+    } catch (error) {
+      console.error('Error checking Supabase session:', error);
     }
     
     if (!userId) {

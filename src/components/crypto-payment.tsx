@@ -2,11 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Wallet } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Wallet, CheckCircle, AlertCircle } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import CryptoPaymentClient from './CryptoPaymentClient';
-import { type PaymentPackage } from '@/lib/crypto-tokens';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
+import { parseUnits } from 'viem';
+import { 
+  type PaymentPackage, 
+  SUPPORTED_TOKENS, 
+  getTokensByChain, 
+  getTokenBySymbolAndChain,
+  ERC20_ABI,
+  PAYMENT_WALLET_ADDRESS 
+} from '@/lib/crypto-tokens';
 
 interface CryptoPaymentProps {
   isOpen: boolean;
@@ -16,59 +26,227 @@ interface CryptoPaymentProps {
 }
 
 export function CryptoPayment({ isOpen, onClose, selectedPackage, onPaymentSuccess }: CryptoPaymentProps) {
-  const { isConnected, address, isConnecting } = useAccount();
-  const [showConnectButton, setShowConnectButton] = useState(false);
+  const { address, isConnected, chain } = useAccount();
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { switchChain } = useSwitchChain();
+  
+  const [selectedToken, setSelectedToken] = useState<typeof SUPPORTED_TOKENS[0] | null>(null);
+  const [paymentStep, setPaymentStep] = useState<'select' | 'confirm' | 'processing' | 'success' | 'error'>('select');
+  
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
 
-  const handleClose = () => {
-    onClose();
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setPaymentStep('select');
+      setSelectedToken(null);
+    }
+  }, [isOpen]);
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isConfirmed && hash && selectedToken && address) {
+      setPaymentStep('success');
+      onPaymentSuccess(
+        hash,
+        selectedToken.symbol,
+        selectedPackage?.price.toString() || '0',
+        address,
+        selectedToken.chainId
+      );
+    }
+  }, [isConfirmed, hash, selectedToken, address, selectedPackage, onPaymentSuccess]);
+
+  // Handle transaction error
+  useEffect(() => {
+    if (error) {
+      setPaymentStep('error');
+    }
+  }, [error]);
+
+  const handleTokenSelect = (token: typeof SUPPORTED_TOKENS[0]) => {
+    setSelectedToken(token);
+    setPaymentStep('confirm');
   };
 
-  useEffect(() => {
-    // Show connect button after a brief delay to avoid hydration issues
-    const timer = setTimeout(() => {
-      setShowConnectButton(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+  const handlePayment = async () => {
+    if (!selectedToken || !selectedPackage || !address) return;
 
-  if (!isConnected || !address) {
-    return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Connect Wallet</DialogTitle>
-            <DialogDescription>
-              Please connect your wallet to make crypto payments.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            {isConnecting ? (
-              <>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-sm text-muted-foreground">Connecting wallet...</p>
-              </>
-            ) : (
-              <>
-                <Wallet className="h-16 w-16 text-muted-foreground" />
-                {showConnectButton && (
-                  <div className="w-full">
-                    <ConnectButton />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+    // Switch to the correct chain if needed
+    if (chain?.id !== selectedToken.chainId) {
+      try {
+        await switchChain({ chainId: selectedToken.chainId });
+        return; // Wait for chain switch, user will need to click pay again
+      } catch (error) {
+        console.error('Failed to switch chain:', error);
+        setPaymentStep('error');
+        return;
+      }
+    }
+
+    setPaymentStep('processing');
+
+    try {
+      const amount = parseUnits(selectedPackage.price.toString(), selectedToken.decimals);
+      
+      writeContract({
+        address: selectedToken.address,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [PAYMENT_WALLET_ADDRESS, amount],
+      });
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentStep('error');
+    }
+  };
+
+  const handleClose = () => {
+    if (paymentStep !== 'processing') {
+      onClose();
+    }
+  };
+
+  const availableTokens = chain ? getTokensByChain(chain.id) : SUPPORTED_TOKENS;
 
   return (
-    <CryptoPaymentClient 
-      isOpen={isOpen}
-      onClose={onClose}
-      selectedPackage={selectedPackage}
-      onPaymentSuccess={onPaymentSuccess}
-    />
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Pay with Crypto</DialogTitle>
+          <DialogDescription>
+            {selectedPackage && `Purchase ${selectedPackage.name} (${selectedPackage.credits.toLocaleString()} credits) for $${selectedPackage.price}`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {!isConnected ? (
+            <div className="flex flex-col items-center space-y-4 py-8">
+              <Wallet className="h-16 w-16 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground text-center">
+                Connect your wallet to pay with crypto
+              </p>
+              <ConnectButton />
+            </div>
+          ) : paymentStep === 'select' ? (
+            <div className="space-y-4">
+              <div className="text-sm font-medium">Select payment token:</div>
+              <div className="grid gap-3">
+                {availableTokens.map((token) => (
+                  <Card 
+                    key={`${token.symbol}-${token.chainId}`}
+                    className="cursor-pointer hover:bg-accent transition-colors"
+                    onClick={() => handleTokenSelect(token)}
+                  >
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{token.icon}</span>
+                        <div>
+                          <div className="font-medium">{token.symbol}</div>
+                          <div className="text-sm text-muted-foreground">{token.name}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="secondary">{token.chainName}</Badge>
+                        <div className="text-sm font-medium mt-1">${selectedPackage?.price}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : paymentStep === 'confirm' ? (
+            <div className="space-y-4">
+              <div className="text-sm font-medium">Confirm payment details:</div>
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Package:</span>
+                    <span className="font-medium">{selectedPackage?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Credits:</span>
+                    <span className="font-medium">{selectedPackage?.credits.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="font-medium">${selectedPackage?.price} {selectedToken?.symbol}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Network:</span>
+                    <Badge variant="secondary">{selectedToken?.chainName}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {chain?.id !== selectedToken?.chainId && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-sm text-yellow-800">
+                      Please switch to {selectedToken?.chainName} network
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <Button variant="outline" onClick={() => setPaymentStep('select')} className="flex-1">
+                  Back
+                </Button>
+                <Button onClick={handlePayment} className="flex-1">
+                  Pay ${selectedPackage?.price}
+                </Button>
+              </div>
+            </div>
+          ) : paymentStep === 'processing' ? (
+            <div className="flex flex-col items-center space-y-4 py-8">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+              <div className="text-center">
+                <div className="font-medium">Processing Payment</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {isPending ? 'Confirm transaction in your wallet...' : 
+                   isConfirming ? 'Waiting for confirmation...' : 
+                   'Preparing transaction...'}
+                </div>
+              </div>
+            </div>
+          ) : paymentStep === 'success' ? (
+            <div className="flex flex-col items-center space-y-4 py-8">
+              <CheckCircle className="h-16 w-16 text-green-500" />
+              <div className="text-center">
+                <div className="font-medium text-green-700">Payment Successful!</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Your credits will be added shortly
+                </div>
+              </div>
+              <Button onClick={onClose} className="w-full">
+                Close
+              </Button>
+            </div>
+          ) : paymentStep === 'error' ? (
+            <div className="flex flex-col items-center space-y-4 py-8">
+              <AlertCircle className="h-16 w-16 text-red-500" />
+              <div className="text-center">
+                <div className="font-medium text-red-700">Payment Failed</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {error?.message || 'Something went wrong. Please try again.'}
+                </div>
+              </div>
+              <div className="flex space-x-3 w-full">
+                <Button variant="outline" onClick={() => setPaymentStep('select')} className="flex-1">
+                  Try Again
+                </Button>
+                <Button onClick={onClose} className="flex-1">
+                  Close
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 } 
