@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 
 export function Header() {
   const router = useRouter();
@@ -108,6 +108,7 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[80vw] sm:w-[350px]">
+                <SheetTitle className="text-lg font-semibold">Waffle Menu</SheetTitle>
                 <div className="flex flex-col h-full">
                   <div className="flex-1 py-6 space-y-6">
                     <div className="px-2">
