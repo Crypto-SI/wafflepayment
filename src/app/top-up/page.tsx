@@ -11,7 +11,9 @@ import Image from "next/image";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/lib/supabase/auth-service-client";
+import { supabase } from "@/lib/supabase/client";
 import { CryptoPayment } from "@/components/crypto-payment";
+import { CongratulationsModal } from "@/components/congratulations-modal";
 import { CREDIT_PACKAGES, type PaymentPackage } from "@/lib/crypto-tokens";
 
 type TopUpOption = {
@@ -91,9 +93,16 @@ export default function TopUpPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
+  const [isCongratulationsModalOpen, setIsCongratulationsModalOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [paymentResult, setPaymentResult] = useState<{
+    creditsAdded: number;
+    newBalance: number;
+    transactionHash: string;
+    tokenSymbol: string;
+  } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -119,11 +128,18 @@ export default function TopUpPage() {
     if (!selectedOption) return;
 
     try {
+      // Get the current session token using Supabase client
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
       // Verify the payment on the backend
       const response = await fetch('/api/crypto/verify-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           transactionHash,
@@ -138,11 +154,21 @@ export default function TopUpPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast({
-          title: "Payment Successful!",
-          description: `${selectedOption.credits.toLocaleString()} credits have been added to your account.`,
+        // Get updated user balance
+        const userResult = await AuthService.getCurrentUser();
+        const newBalance = userResult.subscriber?.credits || 0;
+
+        // Set payment result for congratulations modal
+        setPaymentResult({
+          creditsAdded: selectedOption.credits,
+          newBalance: newBalance,
+          transactionHash: transactionHash,
+          tokenSymbol: tokenSymbol
         });
+
+        // Close crypto modal and show congratulations
         setIsCryptoModalOpen(false);
+        setIsCongratulationsModalOpen(true);
         setSelectedOption(null);
       } else {
         throw new Error(data.error || 'Payment verification failed');
@@ -307,14 +333,25 @@ export default function TopUpPage() {
               )}
               {isLoading ? 'Creating Checkout...' : 'Pay with Card (Stripe)'}
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start h-14 text-lg hover:bg-secondary" 
-              onClick={handleCryptoPayment}
-            >
-              <MetamaskIcon className="mr-4 h-6 w-6 text-primary" />
-              Pay with Crypto (USDT/USDC)
-            </Button>
+            {/* Only show crypto payment option for one-time purchases, not subscriptions */}
+            {selectedOption?.type === 'top-up' && (
+              <Button 
+                variant="outline" 
+                className="w-full justify-start h-14 text-lg hover:bg-secondary" 
+                onClick={handleCryptoPayment}
+              >
+                <MetamaskIcon className="mr-4 h-6 w-6 text-primary" />
+                Pay with Crypto (USDT/USDC)
+              </Button>
+            )}
+            {/* Show explanation for subscription payments */}
+            {selectedOption?.type === 'subscription' && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-800">
+                  💳 Subscriptions require recurring payments and are only available via Stripe.
+                </p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -329,6 +366,16 @@ export default function TopUpPage() {
           description: selectedOption.description,
         } : null}
         onPaymentSuccess={handleCryptoPaymentSuccess}
+      />
+
+      <CongratulationsModal
+        isOpen={isCongratulationsModalOpen}
+        onClose={() => setIsCongratulationsModalOpen(false)}
+        creditsAdded={paymentResult?.creditsAdded || 0}
+        newBalance={paymentResult?.newBalance || 0}
+        transactionHash={paymentResult?.transactionHash || ''}
+        tokenSymbol={paymentResult?.tokenSymbol || ''}
+        userEmail={currentUser?.email}
       />
     </div>
   );

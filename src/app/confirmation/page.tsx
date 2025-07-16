@@ -6,6 +6,8 @@ import Link from "next/link";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CongratulationsModal } from "@/components/congratulations-modal";
+import { AuthService } from "@/lib/supabase/auth-service-client";
 
 interface SessionData {
   status: string;
@@ -27,6 +29,9 @@ export default function ConfirmationPage() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCongratulations, setShowCongratulations] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [newBalance, setNewBalance] = useState(0);
 
   useEffect(() => {
     if (!sessionId) {
@@ -51,6 +56,16 @@ export default function ConfirmationPage() {
         }
 
         setSessionData(data);
+        
+        // If payment is successful, get user data and show congratulations
+        if (data.status === 'complete' && data.payment_status === 'paid') {
+          const userResult = await AuthService.getCurrentUser();
+          if (userResult.success && userResult.user) {
+            setCurrentUser(userResult.user);
+            setNewBalance(userResult.subscriber?.credits || 0);
+            setShowCongratulations(true);
+          }
+        }
       } catch (err) {
         console.error('Error fetching session data:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -175,6 +190,16 @@ export default function ConfirmationPage() {
           </div>
         </CardContent>
       </Card>
+
+      <CongratulationsModal
+        isOpen={showCongratulations}
+        onClose={() => setShowCongratulations(false)}
+        creditsAdded={sessionData ? parseInt(sessionData.metadata.credits) : 0}
+        newBalance={newBalance}
+        transactionHash={sessionId || ''}
+        tokenSymbol="Stripe"
+        userEmail={currentUser?.email}
+      />
     </div>
   );
 }

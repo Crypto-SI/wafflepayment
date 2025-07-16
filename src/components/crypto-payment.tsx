@@ -7,8 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Wallet, CheckCircle, AlertCircle } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
-import { parseUnits } from 'viem';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useReadContract } from 'wagmi';
+import { parseUnits, formatUnits } from 'viem';
 import { 
   type PaymentPackage, 
   SUPPORTED_TOKENS, 
@@ -17,6 +17,7 @@ import {
   ERC20_ABI,
   PAYMENT_WALLET_ADDRESS 
 } from '@/lib/crypto-tokens';
+import { useTokenBalances } from '@/hooks/use-token-balances';
 
 interface CryptoPaymentProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function CryptoPayment({ isOpen, onClose, selectedPackage, onPaymentSucce
   const { address, isConnected, chain } = useAccount();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { switchChain } = useSwitchChain();
+  const { balances, isLoading: balancesLoading } = useTokenBalances();
   
   const [selectedToken, setSelectedToken] = useState<typeof SUPPORTED_TOKENS[0] | null>(null);
   const [paymentStep, setPaymentStep] = useState<'select' | 'confirm' | 'processing' | 'success' | 'error'>('select');
@@ -134,27 +136,69 @@ export function CryptoPayment({ isOpen, onClose, selectedPackage, onPaymentSucce
             <div className="space-y-4">
               <div className="text-sm font-medium">Select payment token:</div>
               <div className="grid gap-3">
-                {availableTokens.map((token) => (
-                  <Card 
-                    key={`${token.symbol}-${token.chainId}`}
-                    className="cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => handleTokenSelect(token)}
-                  >
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{token.icon}</span>
-                        <div>
-                          <div className="font-medium">{token.symbol}</div>
-                          <div className="text-sm text-muted-foreground">{token.name}</div>
+                {availableTokens.map((token) => {
+                  const balanceKey = `${token.symbol}-${token.chainId}`;
+                  const balance = balances[balanceKey];
+                  const hasBalance = balance && parseFloat(balance.formatted) > 0;
+                  const hasEnoughBalance = balance && parseFloat(balance.formatted) >= (selectedPackage?.price || 0);
+                  
+                  return (
+                    <Card 
+                      key={`${token.symbol}-${token.chainId}`}
+                      className={`cursor-pointer transition-colors ${
+                        hasEnoughBalance 
+                          ? 'hover:bg-accent border-green-200 hover:border-green-300' 
+                          : hasBalance 
+                            ? 'hover:bg-accent border-yellow-200 hover:border-yellow-300' 
+                            : 'hover:bg-accent'
+                      }`}
+                      onClick={() => handleTokenSelect(token)}
+                    >
+                      <CardContent className="flex items-center justify-between p-4">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl">{token.icon}</span>
+                          <div>
+                            <div className="font-medium">{token.symbol}</div>
+                            <div className="text-sm text-muted-foreground">{token.name}</div>
+                            {balancesLoading ? (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Loading balance...
+                              </div>
+                            ) : balance ? (
+                              <div className={`text-xs mt-1 ${
+                                hasEnoughBalance 
+                                  ? 'text-green-600' 
+                                  : hasBalance 
+                                    ? 'text-yellow-600' 
+                                    : 'text-muted-foreground'
+                              }`}>
+                                Balance: {parseFloat(balance.formatted).toFixed(2)} {token.symbol}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Balance: 0.00 {token.symbol}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant="secondary">{token.chainName}</Badge>
-                        <div className="text-sm font-medium mt-1">${selectedPackage?.price}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        <div className="text-right">
+                          <Badge variant="secondary">{token.chainName}</Badge>
+                          <div className="text-sm font-medium mt-1">${selectedPackage?.price}</div>
+                          {balance && !hasEnoughBalance && hasBalance && (
+                            <div className="text-xs text-yellow-600 mt-1">
+                              Insufficient balance
+                            </div>
+                          )}
+                          {hasEnoughBalance && (
+                            <div className="text-xs text-green-600 mt-1">
+                              ✓ Sufficient balance
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           ) : paymentStep === 'confirm' ? (

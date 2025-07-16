@@ -66,28 +66,61 @@ async function handleCheckoutSessionCompleted(session: any) {
     // Add credits to user account
     const creditsToAdd = parseInt(credits);
     
-    // Create credit transaction record - this will automatically update subscriber credits via trigger
+    // Check if transaction already processed
+    const { data: existingTransaction } = await supabaseAdmin
+      .from('credit_transactions')
+      .select('id, credits')
+      .eq('transaction_id', session.id)
+      .single();
+
+    if (existingTransaction) {
+      console.log(`⚠️ Stripe transaction ${session.id} already processed`);
+      return;
+    }
+
+    // Create credit transaction record
     const { error: transactionError } = await supabaseAdmin
       .from('credit_transactions')
       .insert({
         user_id: userId,
+        type: 'purchase',
         credits: creditsToAdd,
-        transaction_type: 'purchase',
-        payment_method: 'stripe',
-        amount_usd: session.amount_total / 100, // Convert from cents
-        transaction_hash: session.id,
-        package_info: {
-          credits: creditsToAdd,
-          price: session.amount_total / 100,
-          session_id: session.id,
-        },
+        transaction_id: session.id,
+        source: 'stripe',
+        description: `Stripe payment: ${creditsToAdd} credits for $${session.amount_total / 100}`
       });
 
     if (transactionError) {
       console.error('Error creating credit transaction:', transactionError);
+      return;
     }
 
-    console.log(`Added ${creditsToAdd} credits to user ${userId} via Stripe payment`);
+    // Get current user credits and add new credits
+    const { data: currentUser, error: userError } = await supabaseAdmin
+      .from('subscribers')
+      .select('user_id, credits')
+      .eq('user_id', userId)
+      .single();
+
+    if (userError || !currentUser) {
+      console.error('Error finding user for credit update:', userError);
+      return;
+    }
+
+    // Add credits to user account immediately
+    const { error: creditError } = await supabaseAdmin
+      .from('subscribers')
+      .update({
+        credits: currentUser.credits + creditsToAdd
+      })
+      .eq('user_id', userId);
+
+    if (creditError) {
+      console.error('Error adding credits to user:', creditError);
+      return;
+    }
+
+    console.log(`✅ Added ${creditsToAdd} credits to user ${userId} via Stripe payment (new balance: ${currentUser.credits + creditsToAdd})`);
   }
 }
 
@@ -106,29 +139,61 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   if (userId && credits) {
     const creditsToAdd = parseInt(credits);
     
-    // Create credit transaction record for subscription payment - this will automatically update subscriber credits via trigger
+    // Check if transaction already processed
+    const { data: existingTransaction } = await supabaseAdmin
+      .from('credit_transactions')
+      .select('id, credits')
+      .eq('transaction_id', invoice.id)
+      .single();
+
+    if (existingTransaction) {
+      console.log(`⚠️ Stripe subscription transaction ${invoice.id} already processed`);
+      return;
+    }
+
+    // Create credit transaction record for subscription payment
     const { error: transactionError } = await supabaseAdmin
       .from('credit_transactions')
       .insert({
         user_id: userId,
+        type: 'purchase',
         credits: creditsToAdd,
-        transaction_type: 'purchase',
-        payment_method: 'stripe_subscription',
-        amount_usd: invoice.amount_paid / 100,
-        transaction_hash: invoice.id,
-        package_info: {
-          credits: creditsToAdd,
-          price: invoice.amount_paid / 100,
-          invoice_id: invoice.id,
-          subscription_id: invoice.subscription,
-        },
+        transaction_id: invoice.id,
+        source: 'stripe',
+        description: `Stripe subscription: ${creditsToAdd} credits for $${invoice.amount_paid / 100}`
       });
 
     if (transactionError) {
       console.error('Error creating subscription credit transaction:', transactionError);
+      return;
     }
 
-    console.log(`Added ${creditsToAdd} credits to user ${userId} via subscription payment`);
+    // Get current user credits and add new credits
+    const { data: currentUser, error: userError } = await supabaseAdmin
+      .from('subscribers')
+      .select('user_id, credits')
+      .eq('user_id', userId)
+      .single();
+
+    if (userError || !currentUser) {
+      console.error('Error finding user for subscription credit update:', userError);
+      return;
+    }
+
+    // Add credits to user account immediately
+    const { error: creditError } = await supabaseAdmin
+      .from('subscribers')
+      .update({
+        credits: currentUser.credits + creditsToAdd
+      })
+      .eq('user_id', userId);
+
+    if (creditError) {
+      console.error('Error adding subscription credits to user:', creditError);
+      return;
+    }
+
+    console.log(`✅ Added ${creditsToAdd} credits to user ${userId} via subscription payment (new balance: ${currentUser.credits + creditsToAdd})`);
   }
 }
 

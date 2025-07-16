@@ -60,12 +60,12 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get transaction history from credit_transactions table
+    // Get transaction history from credit_transactions table (both crypto and stripe)
     const { data: transactions, error: transactionsError } = await supabaseAdmin
       .from('credit_transactions')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('timestamp', { ascending: false });
 
     if (transactionsError) {
       console.error('Error fetching transactions:', transactionsError);
@@ -75,63 +75,18 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get crypto transaction history
-    const { data: cryptoTransactions, error: cryptoError } = await supabaseAdmin
-      .from('crypto_transactions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (cryptoError) {
-      console.error('Error fetching crypto transactions:', cryptoError);
-      // Don't fail the entire request if crypto transactions fail
-    }
-
-    // Format credit transactions (Stripe payments)
-    const creditTransactions = transactions?.map(tx => ({
+    // Format all transactions (both Stripe and crypto from unified table)
+    const allTransactions = transactions?.map(tx => ({
       id: tx.id,
-      date: tx.created_at,
+      date: tx.timestamp,
       credits: tx.credits,
-      transactionType: tx.transaction_type,
-      paymentMethod: tx.payment_method,
-      amountUsd: tx.amount_usd,
-      transactionHash: tx.transaction_hash,
-      packageInfo: tx.package_info,
+      transactionType: tx.type,
+      paymentMethod: tx.source,
+      transactionHash: tx.transaction_id,
+      description: tx.description,
       status: 'Completed', // Transactions in the DB are considered completed
-      type: 'credit' // Distinguish from crypto transactions
+      type: tx.source === 'stripe' ? 'stripe' : 'crypto' // Distinguish payment methods
     })) || [];
-
-    // Format crypto transactions
-    const formattedCryptoTransactions = cryptoTransactions?.map(tx => ({
-      id: tx.id,
-      date: tx.created_at,
-      credits: tx.credits_awarded || 0,
-      transactionType: 'purchase',
-      paymentMethod: 'crypto',
-      amountUsd: parseFloat(tx.amount || '0'),
-      transactionHash: tx.transaction_hash,
-      packageInfo: {
-        token_symbol: tx.token_symbol,
-        token_address: tx.token_address,
-        chain_id: tx.chain_id,
-        from_address: tx.from_address,
-        to_address: tx.to_address,
-        amount_wei: tx.amount_wei,
-        block_number: tx.block_number,
-        confirmations: tx.confirmations || 0
-      },
-      status: tx.status === 'confirmed' ? 'Completed' : 
-              tx.status === 'pending' ? `Pending (${tx.confirmations || 0}/3 confirmations)` : 
-              'Failed',
-      type: 'crypto', // Distinguish from credit transactions
-      confirmations: tx.confirmations || 0,
-      tokenSymbol: tx.token_symbol,
-      chainId: tx.chain_id
-    })) || [];
-
-    // Combine and sort all transactions by date
-    const allTransactions = [...creditTransactions, ...formattedCryptoTransactions]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Calculate combined stats
     const completedPurchases = allTransactions.filter(tx => 
@@ -144,18 +99,22 @@ export async function GET(request: NextRequest) {
       .filter(tx => tx.transactionType === 'usage')
       .reduce((sum, tx) => sum + Math.abs(tx.credits), 0);
 
+    // Separate transactions by payment method
+    const stripeTransactions = allTransactions.filter(tx => tx.type === 'stripe');
+    const cryptoTransactions = allTransactions.filter(tx => tx.type === 'crypto');
+
     // Format the response
     const history = {
       user: {
         id: userId,
         email: subscriber.email,
-        name: subscriber.full_name || subscriber.name,
-        signupDate: subscriber.created_at,
-        authType: subscriber.auth_type,
+        name: subscriber.full_name || subscriber.username,
+        signupDate: subscriber.joined_at,
+        authType: 'email',
         walletAddress: subscriber.wallet_address,
         currentCredits: subscriber.credits || 0,
-        subscriptionTier: subscriber.subscription_tier,
-        status: subscriber.status
+        subscriptionTier: null,
+        status: subscriber.is_active ? 'active' : 'inactive'
       },
       transactions: allTransactions,
       stats: {
@@ -163,9 +122,9 @@ export async function GET(request: NextRequest) {
         totalCreditsEarned: totalCreditsEarned,
         totalCreditsUsed: totalCreditsUsed,
         totalSpent: totalSpent,
-        stripeTransactions: creditTransactions.length,
-        cryptoTransactions: formattedCryptoTransactions.length,
-        pendingCryptoTransactions: formattedCryptoTransactions.filter(tx => tx.status.includes('Pending')).length
+        stripeTransactions: stripeTransactions.length,
+        cryptoTransactions: cryptoTransactions.length,
+        pendingCryptoTransactions: 0 // All transactions in DB are completed
       }
     };
 
