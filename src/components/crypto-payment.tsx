@@ -154,7 +154,7 @@ export function CryptoPayment({ isOpen, onClose, selectedPackage, onPaymentSucce
                       }`}
                       onClick={() => handleTokenSelect(token)}
                     >
-                      <CardContent className="flex items-center justify-between p-4">
+                      <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-3">
                         <div className="flex items-center space-x-3">
                           <span className="text-2xl">{token.icon}</span>
                           <div>
@@ -181,7 +181,7 @@ export function CryptoPayment({ isOpen, onClose, selectedPackage, onPaymentSucce
                             )}
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right mt-2 sm:mt-0">
                           <Badge variant="secondary">{token.chainName}</Badge>
                           <div className="text-sm font-medium mt-1">${selectedPackage?.price}</div>
                           {balance && !hasEnoughBalance && hasBalance && (

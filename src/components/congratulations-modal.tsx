@@ -133,18 +133,18 @@ export function CongratulationsModal({
 
           {/* Credit Information */}
           <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                 <div className="flex items-center gap-2">
                   <Gift className="w-5 h-5 text-green-600" />
                   <span className="font-medium text-gray-700">Credits Added:</span>
                 </div>
-                <Badge variant="secondary" className="text-lg px-3 py-1 bg-green-100 text-green-800">
+                <Badge variant="secondary" className="text-lg px-3 py-1 bg-green-100 text-green-800 w-fit">
                   +{creditsAdded.toLocaleString()}
                 </Badge>
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                 <span className="font-medium text-gray-700">New Balance:</span>
                 <div className="text-2xl font-bold text-green-600">
                   {newBalance.toLocaleString()} credits
@@ -152,14 +152,16 @@ export function CongratulationsModal({
               </div>
 
               <div className="pt-2 border-t border-green-200">
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-sm text-gray-600">
                   <span>Payment Method:</span>
-                  <span className="font-medium">{tokenSymbol} (Crypto)</span>
+                  <span className="font-medium">{tokenSymbol} {tokenSymbol === 'Stripe' ? '(Card)' : '(Crypto)'}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm text-gray-600 mt-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-sm text-gray-600 mt-1">
                   <span>Transaction:</span>
-                  <span className="font-mono text-xs">
-                    {transactionHash.slice(0, 8)}...{transactionHash.slice(-6)}
+                  <span className="font-mono text-xs break-all sm:break-normal">
+                    {transactionHash.length > 20 
+                      ? `${transactionHash.slice(0, 8)}...${transactionHash.slice(-6)}`
+                      : transactionHash}
                   </span>
                 </div>
               </div>

@@ -275,7 +275,7 @@ export default function TopUpPage() {
         
         <div>
           <Card className="mt-8 border-dashed border-primary/50 bg-card/50">
-            <CardContent className="flex flex-col md:flex-row items-center justify-center gap-8 p-8 text-center md:text-left">
+            <CardContent className="flex flex-col md:flex-row items-center justify-center gap-8 p-6 sm:p-8 text-center md:text-left">
               <Image
                 src="https://placehold.co/120x120.png"
                 data-ai-hint="token logo"
@@ -285,14 +285,14 @@ export default function TopUpPage() {
                 className="rounded-full border-4 border-primary/20 object-cover"
               />
               <div className="max-w-2xl">
-                <h3 className="font-headline text-2xl font-bold">Buyback & Burn Initiative</h3>
-                <p className="mt-2 text-muted-foreground">
+                <h3 className="font-headline text-xl sm:text-2xl font-bold">Buyback & Burn Initiative</h3>
+                <p className="mt-2 text-sm sm:text-base text-muted-foreground">
                   11% of all purchases go directly towards the buyback and burn of the <span className="font-bold text-foreground">Soonak Meme token</span>, helping to support its ecosystem and community.
                 </p>
                 <div className="mt-4 flex flex-col items-center md:items-start gap-2 text-sm">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                     <span className="font-semibold">Contract:</span>
-                    <code className="font-mono text-xs bg-muted p-1 rounded-md">PASTE_CONTRACT_ADDRESS_HERE</code>
+                    <code className="font-mono text-xs bg-muted p-1 rounded-md overflow-x-auto max-w-full">PASTE_CONTRACT_ADDRESS_HERE</code>
                   </div>
                   <div>
                     <Link href="#" className="text-primary underline hover:text-primary/80">

@@ -150,27 +150,27 @@ export default function ConfirmationPage() {
           <div className="rounded-lg border bg-muted/50 p-4 text-left">
             <h3 className="font-headline text-lg">Transaction Summary</h3>
             <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                 <span>Credits:</span>
                 <span className="font-medium text-foreground">{credits.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                 <span>Amount Paid:</span>
                 <span className="font-medium text-foreground">${amountPaid}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                 <span>Payment Type:</span>
                 <span className="font-medium text-foreground">{paymentType}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                 <span>Payment Method:</span>
                 <span className="font-medium text-foreground">Stripe</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                 <span>Transaction ID:</span>
-                <span className="font-mono text-xs font-medium text-foreground">{sessionId}</span>
+                <span className="font-mono text-xs font-medium text-foreground break-all sm:break-normal">{sessionId}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                 <span>Status:</span>
                 <span className={`font-medium ${
                   isSuccessful ? 'text-green-600' : 'text-amber-600'
