@@ -104,7 +104,7 @@
   - Clean up wallet authentication imports
   - _Requirements: 6.2, 4.1_
 
-- [ ] 9.2 Remove dead code and unused utilities
+- [x] 9.2 Remove dead code and unused utilities
   - Delete unused helper functions
   - Remove commented-out code
   - Clean up unused type definitions

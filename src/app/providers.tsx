@@ -27,6 +27,11 @@ export function AppProviders({
     });
   }, []);
 
+  // Only render providers on client side
+  if (typeof window === 'undefined') {
+    return <>{children}</>;
+  }
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>

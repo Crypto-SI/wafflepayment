@@ -12,4 +12,5 @@ export const config = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'your-project-id',
   chains: [mainnet, polygon, arbitrum, base, optimism],
   ssr: false, // Disable SSR for RainbowKit to prevent IndexedDB errors in server context
+  storage: typeof window !== 'undefined' ? undefined : null, // Prevent storage access on server
 });
