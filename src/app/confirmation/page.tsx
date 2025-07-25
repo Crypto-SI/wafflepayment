@@ -51,7 +51,9 @@ function ConfirmationPageContent() {
 
         if (data.status === 'open') {
           // Session is still open, redirect back to checkout
-          window.location.replace('/top-up');
+          if (typeof window !== 'undefined') {
+            window.location.replace('/top-up');
+          }
           return;
         }
 

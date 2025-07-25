@@ -4,7 +4,7 @@ import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { config } from '@/lib/wagmi-config';
+import { getConfig } from '@/lib/wagmi-config';
 import { useMemo } from 'react';
 
 import '@rainbow-me/rainbowkit/styles.css';
@@ -27,8 +27,10 @@ export function AppProviders({
     });
   }, []);
 
-  // Only render providers on client side
-  if (typeof window === 'undefined') {
+  const config = getConfig();
+
+  // Only render providers on client side and when config is available
+  if (typeof window === 'undefined' || !config) {
     return <>{children}</>;
   }
 

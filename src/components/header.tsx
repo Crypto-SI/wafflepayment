@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ConnectButtonWrapper } from './connect-button-wrapper';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 
 export function Header() {
@@ -77,7 +77,7 @@ export function Header() {
           {/* Wallet Connection - Always show when user is authenticated */}
           {user && (
             <div className="hidden sm:block">
-              <ConnectButton />
+              <ConnectButtonWrapper />
             </div>
           )}
           
@@ -132,7 +132,7 @@ export function Header() {
                     <div className="px-2 pt-4 border-t">
                       <h2 className="text-lg font-semibold mb-4">Wallet</h2>
                       <div className="mb-6">
-                        <ConnectButton />
+                        <ConnectButtonWrapper />
                       </div>
                     </div>
                   </div>

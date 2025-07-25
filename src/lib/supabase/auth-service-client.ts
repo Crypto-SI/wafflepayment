@@ -154,7 +154,7 @@ export class AuthService {
             full_name: userData.fullName,
             ...userData.metadata
           },
-          emailRedirectTo: `${window.location.origin}/auth/confirm`
+          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/confirm` : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/confirm`
         }
       })
 
@@ -262,7 +262,7 @@ export class AuthService {
       }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/confirm`
+        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/confirm` : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/confirm`
       })
       if (error) throw error
 

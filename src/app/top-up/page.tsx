@@ -12,7 +12,7 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/lib/supabase/auth-service-client";
 import { supabase } from "@/lib/supabase/client";
-import { CryptoPayment } from "@/components/crypto-payment";
+import { CryptoPaymentWrapper } from "@/components/crypto-payment-wrapper";
 import { CongratulationsModal } from "@/components/congratulations-modal";
 import { CREDIT_PACKAGES, type PaymentPackage } from "@/lib/crypto-tokens";
 
@@ -225,7 +225,9 @@ export default function TopUpPage() {
 
       // Redirect to Stripe Checkout
       if (data.url) {
-        window.location.href = data.url;
+        if (typeof window !== 'undefined') {
+          window.location.href = data.url;
+        }
       } else {
         throw new Error('No checkout URL received');
       }
@@ -356,7 +358,7 @@ export default function TopUpPage() {
         </DialogContent>
       </Dialog>
 
-      <CryptoPayment
+      <CryptoPaymentWrapper
         isOpen={isCryptoModalOpen}
         onClose={() => setIsCryptoModalOpen(false)}
         selectedPackage={selectedOption ? {

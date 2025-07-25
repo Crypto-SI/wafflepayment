@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 // Dynamically import providers with no SSR
 const AppProviders = dynamic(
@@ -17,5 +17,16 @@ interface ClientProvidersProps {
 }
 
 export function ClientProviders({ children }: ClientProvidersProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Only render providers after client-side hydration
+  if (!isClient) {
+    return <>{children}</>;
+  }
+
   return <AppProviders>{children}</AppProviders>;
 }
